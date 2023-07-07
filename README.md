@@ -6,4 +6,4 @@ Scaglione Martinenghi.
 ## Obiettivo del progetto
 
 Realizzare un programma in C per la ricerca del percorso ottimo tra stazioni di servizio di un'autostrada.<br>
-La specifica del progetto è disponibile qui: [specifica](https://github.com/ale-polimi/progetto-API-2023/Specifica_2022-2023.pdf).
+La specifica del progetto è disponibile qui: [specifica](https://github.com/ale-polimi/progetto-API-2023/blob/master/Specifica_2022-2023.pdf).
