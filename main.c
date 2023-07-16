@@ -4,6 +4,7 @@
 
 #define FALSE 0
 #define TRUE (!FALSE)
+#define NUM_OF_CARS 512
 
 /*
  * Comandi:
@@ -19,7 +20,7 @@
  */
 typedef struct station {
     uint32_t distance;
-    uint32_t vehiclesInStation[512];
+    uint32_t vehiclesInStation[NUM_OF_CARS];
     struct station *previous;
     struct station *next;
 } t_station;
@@ -34,16 +35,20 @@ void addVehicle(ptr_station, uint32_t, uint32_t);
 void removeVehicle(ptr_station, uint32_t, uint32_t);
 void printStations(ptr_station);
 
+// Sorting functions.
+void sortVehicles(uint32_t*, int, int);
+int partition(uint32_t*, int, int);
+void swap(uint32_t*, uint32_t*);
 
 int main() {
     ptr_station autostrada;
 
     autostrada = NULL;
 
-    uint32_t veicoli1[512] = { 0 };
-    uint32_t veicoli2[512] = { 0 };
-    uint32_t veicoli3[512] = { 0 };
-    uint32_t veicoli4[512] = { 0 };
+    uint32_t veicoli1[NUM_OF_CARS] = { 0 };
+    uint32_t veicoli2[NUM_OF_CARS] = { 0 };
+    uint32_t veicoli3[NUM_OF_CARS] = { 0 };
+    uint32_t veicoli4[NUM_OF_CARS] = { 0 };
 
     veicoli1[0] = 10;
     veicoli1[1] = 3;
@@ -71,7 +76,7 @@ int main() {
     addVehicle(autostrada, 3, 123);
     addVehicle(autostrada, 20, 2);
     printStations(autostrada);
-    removeVehicle(autostrada, 10, 12);
+    removeVehicle(autostrada, 10, 10);
     printStations(autostrada);
 
     return 0;
@@ -87,7 +92,7 @@ void printStations(ptr_station ptStations){
     ptTemp = ptStations;
     while(ptTemp != NULL){
         printf("Stazione al km: %u\n", ptTemp->distance);
-        for(int i = 0; i < 512; i++){
+        for(int i = 0; i < NUM_OF_CARS; i++){
             printf("\t%u\n", ptTemp->vehiclesInStation[i]);
         }
         ptTemp = ptTemp->next;
@@ -113,9 +118,11 @@ ptr_station addStation(ptr_station ptStations, uint32_t distance, uint32_t* vehi
         printf("Errore allocazione memoria.\n");
     } else {
         ptTempToAdd->distance = distance;
-        for(i = 0; i < 512; i++){
+        for(i = 0; i < NUM_OF_CARS; i++){
             ptTempToAdd->vehiclesInStation[i] = vehicles[i];
         }
+        sortVehicles(ptTempToAdd->vehiclesInStation, 0, NUM_OF_CARS - 1);
+
         ptTempToAdd->previous = NULL;
         ptTempToAdd->next = NULL;
 
@@ -238,9 +245,10 @@ void addVehicle(ptr_station ptStations, uint32_t distance, uint32_t vehicle){
     } else {
         i = 0;
         addedVehicle = FALSE;
-        while(!addedVehicle && i < 512){
+        while(!addedVehicle && i < NUM_OF_CARS){
             if(ptTemp->vehiclesInStation[i] == 0){
                 ptTemp->vehiclesInStation[i] = vehicle;
+                sortVehicles(ptTemp->vehiclesInStation, 0, NUM_OF_CARS - 1);
                 addedVehicle = TRUE;
             }
             i++;
@@ -276,9 +284,10 @@ void removeVehicle(ptr_station ptStations, uint32_t distance, uint32_t vehicleTo
     } else {
         i = 0;
         removedVehicle = FALSE;
-        while(!removedVehicle && i < 512){
+        while(!removedVehicle && i < NUM_OF_CARS){
             if(ptTemp->vehiclesInStation[i] == vehicleToRemove){
                 ptTemp->vehiclesInStation[i] = 0;
+                sortVehicles(ptTemp->vehiclesInStation, 0, NUM_OF_CARS - 1);
                 removedVehicle = TRUE;
             }
             i++;
@@ -290,4 +299,51 @@ void removeVehicle(ptr_station ptStations, uint32_t distance, uint32_t vehicleTo
     } else {
         printf("rottamata\n");
     }
+}
+
+/**
+ * Quicksort per ordinare in ordine decrescente le automobili in una stazione.
+ * @param array è l'array delle automobili da ordinare.
+ * @param left è l'indice più a sinistra dell'array da ordinare.
+ * @param right è l'indice più a destra dell'array da ordinare.
+ */
+void sortVehicles(uint32_t* array, int left, int right){
+    if(left < right){
+        int q = partition(array, left, right);
+        sortVehicles(array, left, q - 1);
+        sortVehicles(array, q + 1, right);
+    }
+}
+
+/**
+ * Funzione d'aiuto per quicksort. Permette di dividere l'array in sottoarray più piccoli.
+ * @param array è l'array da dividere.
+ * @param left è l'indice più a sinistra dell'array da dividere.
+ * @param right è l'indice più a destra dell'array da dividere.
+ * @return l'indice che delimita i sottoarray da ordinare tramite chiamate ricorsive di quicksort.
+ */
+int partition(uint32_t* array, int left, int right) {
+    uint32_t pivot = array[right];
+    int i = left - 1;
+    for(int j = left; j <= right - 1; j++){
+        if(array[j] > pivot){
+            i++;
+            swap(&array[i], &array[j]);
+        }
+    }
+
+    swap(&array[i + 1], &array[right]);
+
+    return i + 1;
+}
+
+/**
+ * Funzione che permette di scambiare di posto due numeri.
+ * @param a è il primo numero da scambiare.
+ * @param b è il secondo numero da scambiare.
+ */
+void swap(uint32_t* a, uint32_t* b){
+    uint32_t temp = *a;
+    *a = *b;
+    *b = temp;
 }
