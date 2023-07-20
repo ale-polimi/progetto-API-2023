@@ -1,10 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
 
 #define FALSE 0
 #define TRUE (!FALSE)
 #define NUM_OF_CARS 512
+#define BUFF_LEN 7710 //Max caratteri ammissibili per 512 numeri a 32 bit + spazi + comando "aggiungi-stazione"
 
 /*
  * Comandi:
@@ -31,9 +33,12 @@ typedef int bool;
 
 ptr_station addStation(ptr_station, uint32_t, uint32_t*);
 ptr_station removeStation(ptr_station, uint32_t);
+ptr_station destroyStations(ptr_station);
 void addVehicle(ptr_station, uint32_t, uint32_t);
 void removeVehicle(ptr_station, uint32_t, uint32_t);
 void printStations(ptr_station);
+
+void safe_fgets(char*);
 
 // Sorting functions.
 void sortVehicles(uint32_t*, int, int);
@@ -42,9 +47,123 @@ void swap(uint32_t*, uint32_t*);
 
 int main() {
     ptr_station autostrada;
-
+    char *inputBuffer = (char *) malloc(BUFF_LEN * sizeof(char));
     autostrada = NULL;
 
+    while(TRUE){
+        safe_fgets(inputBuffer);
+        if(inputBuffer[0] == 'a'){
+            if(inputBuffer[9] == 's'){
+                /* Comando: aggiungi-stazione */
+
+                int i = 0;
+                uint32_t tempDistance;
+                uint32_t tempVehicles[512] = { 0 };
+                char* p = inputBuffer + 18;
+                while(p < inputBuffer+BUFF_LEN ) {
+                    char *end;
+                    uint32_t tempValue = strtol(p, &end, 10);
+                    if (tempValue == 0L && end == p)  //docs also suggest checking errno value
+                        break;
+
+                    if(i == 0){
+                        tempDistance = tempValue;
+                    } else {
+                        tempVehicles[i - 1] = tempValue;
+                    }
+                    i++;
+
+                    p = end;
+                }
+
+                autostrada = addStation(autostrada, tempDistance, tempVehicles);
+
+            } else if(inputBuffer[9] == 'a'){
+                /* Comando: aggiungi-auto */
+
+                int i = 0;
+                uint32_t tempDistance;
+                uint32_t tempVehicle;
+                char* p = inputBuffer + 14;
+                while(p < inputBuffer+BUFF_LEN ) {
+                    char *end;
+                    uint32_t tempValue = strtol(p, &end, 10);
+                    if (tempValue == 0L && end == p)  //docs also suggest checking errno value
+                        break;
+
+                    if(i == 0){
+                        tempDistance = tempValue;
+                    } else {
+                        tempVehicle = tempValue;
+                    }
+                    i++;
+
+                    p = end;
+                }
+
+                addVehicle(autostrada, tempDistance, tempVehicle);
+            }
+        } else if(inputBuffer[0] == 'd'){
+            /* Comando: demolisci-stazione */
+
+            uint32_t tempDistance;
+            char* p = inputBuffer + 19;
+            while(p < inputBuffer+BUFF_LEN ) {
+                char *end;
+                uint32_t tempValue = strtol(p, &end, 10);
+                if (tempValue == 0L && end == p)  //docs also suggest checking errno value
+                    break;
+
+                tempDistance = tempValue;
+
+                p = end;
+            }
+
+            autostrada = removeStation(autostrada, tempDistance);
+
+        } else if(inputBuffer[0] == 'r'){
+            /* Comando: rottama-auto */
+
+            int i = 0;
+            uint32_t tempDistance;
+            uint32_t tempVehicle;
+            char* p = inputBuffer + 13;
+            while(p < inputBuffer+BUFF_LEN ) {
+                char *end;
+                uint32_t tempValue = strtol(p, &end, 10);
+                if (tempValue == 0L && end == p)  //docs also suggest checking errno value
+                    break;
+
+                if(i == 0){
+                    tempDistance = tempValue;
+                } else {
+                    tempVehicle = tempValue;
+                }
+                i++;
+
+                p = end;
+            }
+
+            removeVehicle(autostrada, tempDistance, tempVehicle);
+
+        } else if(inputBuffer[0] == 'p'){
+            /* Comando: pianifica-percorso */
+
+
+        } else {
+            if(autostrada != NULL){
+                autostrada = destroyStations(autostrada);
+            }
+            if(inputBuffer != NULL){
+                free(inputBuffer);
+            }
+            break;
+        }
+    }
+
+    return 0;
+
+    /*
     uint32_t veicoli1[NUM_OF_CARS] = { 0 };
     uint32_t veicoli2[NUM_OF_CARS] = { 0 };
     uint32_t veicoli3[NUM_OF_CARS] = { 0 };
@@ -80,6 +199,17 @@ int main() {
     printStations(autostrada);
 
     return 0;
+     */
+}
+
+/**
+ * Funzione per ricevere in modo sicuro l'input.
+ * @param s è il buffer per lo stream di input.
+ */
+void safe_fgets(char *s){
+    if(fgets(s, BUFF_LEN, stdin) == NULL){
+        exit(EXIT_FAILURE);
+    }
 }
 
 /**
@@ -221,6 +351,24 @@ ptr_station removeStation(ptr_station ptStations, uint32_t distance){
     }
 
     return(ptStations);
+}
+
+/**
+ * Funzione necessaria per la rimozione di tutte le stazioni.
+ * @param ptrStations è il puntatore all'inizio dell'autostrada.
+ * @return il puntatore all'inizio della lista aggiornata.
+ */
+ptr_station destroyStations(ptr_station ptrStations){
+    ptr_station ptTemp;
+
+    while(ptrStations != NULL){
+        ptTemp = ptrStations;
+        ptrStations = ptrStations->next;
+        free(ptTemp);
+    }
+    ptrStations = NULL;
+
+    return(ptrStations);
 }
 
 /**
