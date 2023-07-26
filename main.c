@@ -1,10 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include <string.h>
 
 #define FALSE 0
 #define TRUE (!FALSE)
+#define FWD 0
+#define REV (!FWD)
 #define NUM_OF_CARS 512
 #define BUFF_LEN 7710 //Max caratteri ammissibili per 512 numeri a 32 bit + spazi + comando "aggiungi-stazione"
 
@@ -30,12 +31,16 @@ typedef struct station {
 typedef t_station* ptr_station;
 
 typedef int bool;
+typedef int direction;
 
 ptr_station addStation(ptr_station, uint32_t, uint32_t*);
 ptr_station removeStation(ptr_station, uint32_t);
 ptr_station destroyStations(ptr_station);
 void addVehicle(ptr_station, uint32_t, uint32_t);
 void removeVehicle(ptr_station, uint32_t, uint32_t);
+
+int findNumOfStations(ptr_station, uint32_t, uint32_t, direction);
+
 void printStations(ptr_station);
 
 void safe_fgets(char*);
@@ -45,10 +50,12 @@ void sortVehicles(uint32_t*, int, int);
 int partition(uint32_t*, int, int);
 void swap(uint32_t*, uint32_t*);
 
+
 int main() {
     ptr_station autostrada;
     char *inputBuffer = (char *) malloc(BUFF_LEN * sizeof(char));
     autostrada = NULL;
+    direction direction;
 
     while(TRUE){
         safe_fgets(inputBuffer);
@@ -149,6 +156,86 @@ int main() {
         } else if(inputBuffer[0] == 'p'){
             /* Comando: pianifica-percorso */
 
+            int i = 0;
+            uint32_t from;
+            uint32_t to;
+            char* p = inputBuffer + 19;
+            while(p < inputBuffer+BUFF_LEN ) {
+                char *end;
+                uint32_t tempValue = strtol(p, &end, 10);
+                if (tempValue == 0L && end == p)  //docs also suggest checking errno value
+                    break;
+
+                if(i == 0){
+                    from = tempValue;
+                } else {
+                    to = tempValue;
+                }
+                i++;
+
+                p = end;
+            }
+
+            if(from < to){
+                /* Left to right */
+                direction = FWD;
+            } else {
+                /* Right to left */
+                direction = REV;
+            }
+
+            if(from == to){
+                printf("%u\n", from);
+            } else {
+                int numOfStations = 0;
+                numOfStations = findNumOfStations(autostrada, from, to, direction);
+
+                switch (direction) {
+                    case FWD:
+                        if(numOfStations == 0){
+                            ptr_station ptTemp;
+
+                            ptTemp = autostrada;
+                            while(ptTemp->distance != from){
+                                ptTemp = ptTemp->next;
+                            }
+
+                            if(ptTemp->next->distance - ptTemp->distance <= ptTemp->vehiclesInStation[0]){
+                                printf("%u %u\n", ptTemp->distance, ptTemp->next->distance);
+                            } else {
+                                printf("nessun percorso\n");
+                            }
+                        } else {
+                            /* Funzione ricorsiva */
+
+
+                        }
+                        break;
+                    case REV:
+                        if(numOfStations == 0){
+                            ptr_station ptTemp;
+
+                            ptTemp = autostrada;
+                            while(ptTemp->distance != from){
+                                ptTemp = ptTemp->next;
+                            }
+
+                            if(ptTemp->distance - ptTemp->previous->distance <= ptTemp->vehiclesInStation[0]){
+                                printf("%u %u\n", ptTemp->distance, ptTemp->previous->distance);
+                            } else {
+                                printf("nessun percorso\n");
+                            }
+                        } else {
+                            /* Funzione ricorsiva */
+
+
+
+                        }
+                        break;
+                }
+
+
+            }
 
         } else {
             if(autostrada != NULL){
@@ -162,44 +249,6 @@ int main() {
     }
 
     return 0;
-
-    /*
-    uint32_t veicoli1[NUM_OF_CARS] = { 0 };
-    uint32_t veicoli2[NUM_OF_CARS] = { 0 };
-    uint32_t veicoli3[NUM_OF_CARS] = { 0 };
-    uint32_t veicoli4[NUM_OF_CARS] = { 0 };
-
-    veicoli1[0] = 10;
-    veicoli1[1] = 3;
-    veicoli1[2] = 4502;
-    veicoli1[3] = 34;
-
-    veicoli2[0] = 140;
-    veicoli2[1] = 32;
-    veicoli2[2] = 4;
-    veicoli2[3] = 7342;
-    veicoli2[4] = 23;
-
-    veicoli3[0] = 12;
-    veicoli4[0] = 1234;
-
-    autostrada = addStation(autostrada, 10, veicoli1);
-    autostrada = addStation(autostrada, 2, veicoli2);
-    autostrada = addStation(autostrada, 11, veicoli3);
-    //autostrada = addStation(autostrada, 11, veicoli4);
-    //autostrada = addStation(autostrada, 20, veicoli4);
-
-    //autostrada = removeStation(autostrada, 12);
-    addVehicle(autostrada, 10, 10);
-    //printStations(autostrada);
-    addVehicle(autostrada, 3, 123);
-    addVehicle(autostrada, 20, 2);
-    printStations(autostrada);
-    removeVehicle(autostrada, 10, 10);
-    printStations(autostrada);
-
-    return 0;
-     */
 }
 
 /**
@@ -447,6 +496,67 @@ void removeVehicle(ptr_station ptStations, uint32_t distance, uint32_t vehicleTo
     } else {
         printf("rottamata\n");
     }
+}
+
+/**
+ * Funzione che trova il numero di stazioni intermedie tra l'inizio e la fine del percorso.
+ * @param ptrStations è il puntatore all'inizio dell'autostrada.
+ * @param from è la stazione di partenza.
+ * @param to è la stazione di arrivo.
+ * @param direction è la direzione del percorso. FWD = da sinistra a destra, REV = da destra a sinistra.
+ * @return il numero di stazioni intermedie.
+ */
+int findNumOfStations(ptr_station ptrStations, uint32_t from, uint32_t to, direction direction) {
+    ptr_station ptTemp;
+    ptr_station ptStart;
+    ptr_station ptEnd;
+    int numOfStations = 0;
+
+    switch(direction){
+        case FWD:
+            ptTemp = ptrStations;
+            while(ptTemp->distance != from){
+                ptTemp = ptTemp->next;
+            }
+            ptStart = ptTemp;
+
+            while(ptTemp->distance != to){
+                ptTemp = ptTemp->next;
+            }
+            ptEnd = ptTemp;
+
+            while(ptStart != ptEnd){
+                numOfStations++;
+                ptStart = ptStart->next;
+            }
+            break;
+        case REV:
+            ptTemp = ptrStations;
+            while(ptTemp->distance != from){
+                ptTemp = ptTemp->next;
+            }
+            ptStart = ptTemp;
+
+            ptTemp = ptrStations;
+            while(ptTemp->distance != to){
+                ptTemp = ptTemp->next;
+            }
+            ptEnd = ptTemp;
+
+            while(ptStart != ptEnd){
+                numOfStations++;
+                ptStart = ptStart->previous;
+            }
+            break;
+        default:
+            numOfStations = 0;
+    }
+
+    return (numOfStations - 1);
+}
+
+void planPath(){
+
 }
 
 /**
