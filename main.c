@@ -34,8 +34,9 @@ typedef t_station* ptr_station;
 typedef int bool;
 typedef int direction;
 
-void dijkstra(uint32_t **, int, int, int *, int);
 int minDistance(uint32_t *, bool *, int);
+void printPath(int *, int, uint32_t *);
+void dijkstra(uint32_t **, int, int, uint32_t *, int);
 
 ptr_station addStation(ptr_station, uint32_t, uint32_t*);
 ptr_station removeStation(ptr_station, uint32_t);
@@ -47,7 +48,7 @@ int findNumOfStations(ptr_station, uint32_t, uint32_t, direction);
 
 void printStations(ptr_station);
 
-void safe_fgets(char*);
+bool safe_fgets(char*);
 
 // Sorting functions.
 void sortVehicles(uint32_t*, int, int);
@@ -57,7 +58,8 @@ void swap(uint32_t*, uint32_t*);
 ptr_station findStation(ptr_station, uint32_t);
 void resetArray(bool *, int);
 
-void createGraph(ptr_station, ptr_station, int, uint32_t *, uint32_t**);
+void createGraphFwd(ptr_station, ptr_station, int, uint32_t *, uint32_t**);
+void createGraphRev(ptr_station, ptr_station, int, uint32_t *, uint32_t**);
 int indexOf(uint32_t *, int, uint32_t);
 
 void printMatrix(uint32_t **, int);
@@ -69,40 +71,83 @@ int main() {
     direction direction;
 
     while(TRUE){
-        safe_fgets(inputBuffer);
-        if(inputBuffer[0] == 'a'){
-            if(inputBuffer[9] == 's'){
-                /* Comando: aggiungi-stazione */
+        if(safe_fgets(inputBuffer)){
+            if(inputBuffer[0] == 'a'){
+                if(inputBuffer[9] == 's'){
+                    /* Comando: aggiungi-stazione */
 
-                int i = 0;
-                uint32_t tempDistance;
-                uint32_t tempVehicles[512] = { 0 };
-                char* p = inputBuffer + 18;
+                    int i = 0;
+                    uint32_t tempDistance = 0;
+                    uint32_t tempVehicles[512] = { 0 };
+                    char* p = inputBuffer + 18;
+                    while(p < inputBuffer+BUFF_LEN ) {
+                        char *end;
+                        uint32_t tempValue = strtol(p, &end, 10);
+                        if (tempValue == 0L && end == p)  //docs also suggest checking errno value
+                            break;
+
+                        if(i == 0){
+                            tempDistance = tempValue;
+                        } else {
+                            tempVehicles[i - 1] = tempValue;
+                        }
+                        i++;
+
+                        p = end;
+                    }
+
+                    autostrada = addStation(autostrada, tempDistance, tempVehicles);
+
+                } else if(inputBuffer[9] == 'a'){
+                    /* Comando: aggiungi-auto */
+
+                    int i = 0;
+                    uint32_t tempDistance = 0;
+                    uint32_t tempVehicle = 0;
+                    char* p = inputBuffer + 14;
+                    while(p < inputBuffer+BUFF_LEN ) {
+                        char *end;
+                        uint32_t tempValue = strtol(p, &end, 10);
+                        if (tempValue == 0L && end == p)  //docs also suggest checking errno value
+                            break;
+
+                        if(i == 0){
+                            tempDistance = tempValue;
+                        } else {
+                            tempVehicle = tempValue;
+                        }
+                        i++;
+
+                        p = end;
+                    }
+
+                    addVehicle(autostrada, tempDistance, tempVehicle);
+                }
+            } else if(inputBuffer[0] == 'd'){
+                /* Comando: demolisci-stazione */
+
+                uint32_t tempDistance = 0;
+                char* p = inputBuffer + 19;
                 while(p < inputBuffer+BUFF_LEN ) {
                     char *end;
                     uint32_t tempValue = strtol(p, &end, 10);
                     if (tempValue == 0L && end == p)  //docs also suggest checking errno value
                         break;
 
-                    if(i == 0){
-                        tempDistance = tempValue;
-                    } else {
-                        tempVehicles[i - 1] = tempValue;
-                    }
-                    i++;
+                    tempDistance = tempValue;
 
                     p = end;
                 }
 
-                autostrada = addStation(autostrada, tempDistance, tempVehicles);
+                autostrada = removeStation(autostrada, tempDistance);
 
-            } else if(inputBuffer[9] == 'a'){
-                /* Comando: aggiungi-auto */
+            } else if(inputBuffer[0] == 'r'){
+                /* Comando: rottama-auto */
 
                 int i = 0;
-                uint32_t tempDistance;
-                uint32_t tempVehicle;
-                char* p = inputBuffer + 14;
+                uint32_t tempDistance = 0;
+                uint32_t tempVehicle = 0;
+                char* p = inputBuffer + 13;
                 while(p < inputBuffer+BUFF_LEN ) {
                     char *end;
                     uint32_t tempValue = strtol(p, &end, 10);
@@ -119,175 +164,174 @@ int main() {
                     p = end;
                 }
 
-                addVehicle(autostrada, tempDistance, tempVehicle);
-            }
-        } else if(inputBuffer[0] == 'd'){
-            /* Comando: demolisci-stazione */
+                removeVehicle(autostrada, tempDistance, tempVehicle);
 
-            uint32_t tempDistance;
-            char* p = inputBuffer + 19;
-            while(p < inputBuffer+BUFF_LEN ) {
-                char *end;
-                uint32_t tempValue = strtol(p, &end, 10);
-                if (tempValue == 0L && end == p)  //docs also suggest checking errno value
-                    break;
+            } else if(inputBuffer[0] == 'p'){
+                /* Comando: pianifica-percorso */
 
-                tempDistance = tempValue;
+                int i = 0;
+                uint32_t from = 0;
+                uint32_t to = 0;
+                char* p = inputBuffer + 19;
+                while(p < inputBuffer+BUFF_LEN ) {
+                    char *end;
+                    uint32_t tempValue = strtol(p, &end, 10);
+                    if (tempValue == 0L && end == p)  //docs also suggest checking errno value
+                        break;
 
-                p = end;
-            }
+                    if(i == 0){
+                        from = tempValue;
+                    } else {
+                        to = tempValue;
+                    }
+                    i++;
 
-            autostrada = removeStation(autostrada, tempDistance);
-
-        } else if(inputBuffer[0] == 'r'){
-            /* Comando: rottama-auto */
-
-            int i = 0;
-            uint32_t tempDistance;
-            uint32_t tempVehicle;
-            char* p = inputBuffer + 13;
-            while(p < inputBuffer+BUFF_LEN ) {
-                char *end;
-                uint32_t tempValue = strtol(p, &end, 10);
-                if (tempValue == 0L && end == p)  //docs also suggest checking errno value
-                    break;
-
-                if(i == 0){
-                    tempDistance = tempValue;
-                } else {
-                    tempVehicle = tempValue;
+                    p = end;
                 }
-                i++;
 
-                p = end;
-            }
-
-            removeVehicle(autostrada, tempDistance, tempVehicle);
-
-        } else if(inputBuffer[0] == 'p'){
-            /* Comando: pianifica-percorso */
-
-            int i = 0;
-            uint32_t from;
-            uint32_t to;
-            char* p = inputBuffer + 19;
-            while(p < inputBuffer+BUFF_LEN ) {
-                char *end;
-                uint32_t tempValue = strtol(p, &end, 10);
-                if (tempValue == 0L && end == p)  //docs also suggest checking errno value
-                    break;
-
-                if(i == 0){
-                    from = tempValue;
+                if(from < to){
+                    /* Left to right */
+                    direction = FWD;
                 } else {
-                    to = tempValue;
+                    /* Right to left */
+                    direction = REV;
                 }
-                i++;
 
-                p = end;
-            }
+                if(from == to){
+                    printf("%u\n", from);
+                } else {
+                    int numOfStations = 0;
+                    numOfStations = findNumOfStations(autostrada, from, to, direction);
 
-            if(from < to){
-                /* Left to right */
-                direction = FWD;
-            } else {
-                /* Right to left */
-                direction = REV;
-            }
+                    switch (direction) {
+                        case FWD:
+                            if(numOfStations == 0){
+                                ptr_station ptTemp;
 
-            if(from == to){
-                printf("%u\n", from);
-            } else {
-                int numOfStations = 0;
-                numOfStations = findNumOfStations(autostrada, from, to, direction);
+                                ptTemp = findStation(autostrada, from);
 
-                switch (direction) {
-                    case FWD:
-                        if(numOfStations == 0){
-                            ptr_station ptTemp;
-
-                            ptTemp = findStation(autostrada, from);
-
-                            if(ptTemp->next->distance - ptTemp->distance <= ptTemp->vehiclesInStation[0]){
-                                printf("%u %u\n", ptTemp->distance, ptTemp->next->distance);
+                                if(ptTemp->next->distance - ptTemp->distance <= ptTemp->vehiclesInStation[0]){
+                                    printf("%u %u\n", ptTemp->distance, ptTemp->next->distance);
+                                } else {
+                                    printf("nessun percorso\n");
+                                }
                             } else {
-                                printf("nessun percorso\n");
-                            }
-                        } else {
 
 #ifdef DEBUG
-printf("NumOfStations: %d\n", numOfStations + 2);
+                                printf("NumOfStations: %d\n", numOfStations + 2);
 #endif
 
-                            ptr_station startStation = findStation(autostrada, from);
-                            ptr_station endStation = findStation(autostrada, to);
-                            uint32_t* lut = malloc((numOfStations + 2)*sizeof(uint32_t));
-                            int k;
+                                ptr_station startStation = findStation(autostrada, from);
+                                ptr_station endStation = findStation(autostrada, to);
+                                uint32_t* lut = malloc((numOfStations + 2)*sizeof(uint32_t));
+                                int k;
 
-                            /* Creo una LUT per trasformare le distanze delle stazioni in numeri da 0 a numOfStations */
-                            for(k = 0; k < numOfStations + 2; k++){
-                                lut[k] = 0;
-                            }
-
-                            ptr_station ptrTemp = startStation;
-                            k = 0;
-                            while(ptrTemp != endStation){
-                                lut[k] = ptrTemp->distance;
-                                k++;
-                                ptrTemp = ptrTemp->next;
-                            }
-                            lut[k] = ptrTemp->distance;
-
-
-                            /* Creare la matrice di adiacenza per il grafo */
-                            uint32_t** adjacencyMatrix = (uint32_t**)malloc((numOfStations + 2)*sizeof(uint32_t*));
-                            for(k = 0; k < numOfStations + 2; k++){
-                                adjacencyMatrix[k] = (uint32_t*)malloc((numOfStations + 2)*sizeof(uint32_t));
-                                for(int j = 0; j < numOfStations + 2; j++){
-                                    adjacencyMatrix[k][j] = 0;
+                                /* Creo una LUT per trasformare le distanze delle stazioni in numeri da 0 a numOfStations */
+                                for(k = 0; k < numOfStations + 2; k++){
+                                    lut[k] = 0;
                                 }
-                            }
 
-                            /* Popolare la matrice di adiacenza */
-                            createGraph(startStation, endStation, numOfStations + 2, lut, adjacencyMatrix);
+                                ptr_station ptrTemp = startStation;
+                                k = 0;
+                                while(ptrTemp != endStation){
+                                    lut[k] = ptrTemp->distance;
+                                    k++;
+                                    ptrTemp = ptrTemp->next;
+                                }
+                                lut[k] = ptrTemp->distance;
+
+
+                                /* Creare la matrice di adiacenza per il grafo */
+                                uint32_t** adjacencyMatrix = (uint32_t**)malloc((numOfStations + 2)*sizeof(uint32_t*));
+                                for(k = 0; k < numOfStations + 2; k++){
+                                    adjacencyMatrix[k] = (uint32_t*)malloc((numOfStations + 2)*sizeof(uint32_t));
+                                    for(int j = 0; j < numOfStations + 2; j++){
+                                        adjacencyMatrix[k][j] = 0;
+                                    }
+                                }
+
+                                /* Popolare la matrice di adiacenza */
+                                createGraphFwd(startStation, endStation, numOfStations + 2, lut, adjacencyMatrix);
 /*
 #ifdef DEBUG
 printMatrix(adjacencyMatrix, numOfStations + 2);
 #endif
  */
 
-                            dijkstra(adjacencyMatrix, indexOf(lut, numOfStations + 2, startStation->distance), indexOf(lut, numOfStations + 2, endStation->distance), lut, numOfStations + 2);
+                                dijkstra(adjacencyMatrix, indexOf(lut, numOfStations + 2, startStation->distance), indexOf(lut, numOfStations + 2, endStation->distance), lut, numOfStations + 2);
 
-                            for(k = 0; k < numOfStations + 2; k++){
-                                free(adjacencyMatrix[k]);
+                                for(k = 0; k < numOfStations + 2; k++){
+                                    free(adjacencyMatrix[k]);
+                                }
+                                free(adjacencyMatrix);
+                                free(lut);
                             }
-                            free(adjacencyMatrix);
-                            free(lut);
-                        }
-                        break;
-                    case REV:
-                        if(numOfStations == 0){
-                            ptr_station ptTemp;
+                            break;
+                        case REV:
+                            if(numOfStations == 0){
+                                ptr_station ptTemp;
 
-                            ptTemp = findStation(autostrada, from);
+                                ptTemp = findStation(autostrada, from);
 
-                            if(ptTemp->distance - ptTemp->previous->distance <= ptTemp->vehiclesInStation[0]){
-                                printf("%u %u\n", ptTemp->distance, ptTemp->previous->distance);
+                                if(ptTemp->distance - ptTemp->previous->distance <= ptTemp->vehiclesInStation[0]){
+                                    printf("%u %u\n", ptTemp->distance, ptTemp->previous->distance);
+                                } else {
+                                    printf("nessun percorso\n");
+                                }
                             } else {
-                                printf("nessun percorso\n");
+
+#ifdef DEBUG
+                                printf("NumOfStations: %d\n", numOfStations + 2);
+#endif
+                                ptr_station startStation = findStation(autostrada, from);
+                                ptr_station endStation = findStation(autostrada, to);
+                                uint32_t* lut = malloc((numOfStations + 2)*sizeof(uint32_t));
+                                int k;
+
+                                /* Creo una LUT per trasformare le distanze delle stazioni in numeri da 0 a numOfStations */
+                                for(k = 0; k < numOfStations + 2; k++){
+                                    lut[k] = 0;
+                                }
+
+                                ptr_station ptrTemp = startStation;
+                                k = 0;
+                                while(ptrTemp != endStation){
+                                    lut[k] = ptrTemp->distance;
+                                    k++;
+                                    ptrTemp = ptrTemp->previous;
+                                }
+                                lut[k] = ptrTemp->distance;
+
+                                /* Creare la matrice di adiacenza per il grafo */
+                                uint32_t** adjacencyMatrix = (uint32_t**)malloc((numOfStations + 2)*sizeof(uint32_t*));
+                                for(k = 0; k < numOfStations + 2; k++){
+                                    adjacencyMatrix[k] = (uint32_t*)malloc((numOfStations + 2)*sizeof(uint32_t));
+                                    for(int j = 0; j < numOfStations + 2; j++){
+                                        adjacencyMatrix[k][j] = 0;
+                                    }
+                                }
+
+                                /* Popolare la matrice di adiacenza */
+                                createGraphRev(startStation, endStation, numOfStations + 2, lut, adjacencyMatrix);
+/*
+#ifdef DEBUG
+printMatrix(adjacencyMatrix, numOfStations + 2);
+#endif
+ */
+
+                                dijkstra(adjacencyMatrix, indexOf(lut, numOfStations + 2, startStation->distance), indexOf(lut, numOfStations + 2, endStation->distance), lut, numOfStations + 2);
+
+                                for(k = 0; k < numOfStations + 2; k++){
+                                    free(adjacencyMatrix[k]);
+                                }
+                                free(adjacencyMatrix);
+                                free(lut);
                             }
-                        } else {
-                            /* Funzione ricorsiva */
-
-
-
-                        }
-                        break;
+                            break;
+                    }
                 }
 
-
             }
-
         } else {
             if(autostrada != NULL){
                 autostrada = destroyStations(autostrada);
@@ -328,7 +372,8 @@ void printMatrix(uint32_t **graph, int length) {
  * @return
  */
 int minDistance(uint32_t *dist, bool *visited, int numOfStations) {
-    int min = INT_MAX, min_index;
+    int min = INT_MAX;
+    int min_index = 0;
 
     for (int v = 0; v < numOfStations; v++) {
         if (!visited[v] && dist[v] <= min) {
@@ -346,7 +391,7 @@ int minDistance(uint32_t *dist, bool *visited, int numOfStations) {
  * @param j è l'indice da cui partire.
  * @param lut è il puntatore alla LUT.
  */
-void printPath(int *parent, int j, int *lut) {
+void printPath(int *parent, int j, uint32_t *lut) {
 
     if (parent[j] == -1){
         return;
@@ -364,7 +409,7 @@ void printPath(int *parent, int j, int *lut) {
  * @param lut è la LUT che trasforma le distanze in valori da 0 a numOfStations.
  * @param numOfStations è il numero di stazioni tra la partenza e la destinazione.
  */
-void dijkstra(uint32_t **graph, int src, int dest, int *lut, int numOfStations) {
+void dijkstra(uint32_t **graph, int src, int dest, uint32_t *lut, int numOfStations) {
     uint32_t *dist = malloc(numOfStations*sizeof(uint32_t));
     bool *visited = malloc(numOfStations*sizeof(bool));
     int *parent = malloc(numOfStations*sizeof(int));
@@ -392,14 +437,6 @@ void dijkstra(uint32_t **graph, int src, int dest, int *lut, int numOfStations) 
             }
         }
     }
-
-#ifdef DEBUG
-    printf("Parent = [");
-    for(int i = 0; i < numOfStations - 1; i++){
-        printf("%d ", parent[i]);
-    }
-    printf("%d]\n", parent[numOfStations - 1]);
-#endif
 
     int foundPath = 1;
     for(int k = 0; k < numOfStations; k++){
@@ -444,21 +481,20 @@ int indexOf(uint32_t *lut, int length, uint32_t distance) {
 }
 
 /**
- * Funzione utilizzata per creare un grafo.
+ * Funzione utilizzata per creare un grafo (in direzione dall'inizio alla fine dell'autostrada).
  * @param departure è la stazione di partenza.
  * @param destination è la stazione di arrivo.
  * @param numOfStations è il numero di stazioni tra la stazione di partenza e quella di arrivo.
  * @param lut è il puntatore alla LUT.
  * @param adjacencyMatrix è il grafo, memorizzato come matrice di adiacenza.
  */
-void createGraph(ptr_station departure, ptr_station destination, int numOfStations, uint32_t * lut, uint32_t **adjacencyMatrix){
+void createGraphFwd(ptr_station departure, ptr_station destination, int numOfStations, uint32_t * lut, uint32_t **adjacencyMatrix){
 
     if(departure == destination){
         return;
     }
 
     ptr_station ptrTemp = departure;
-    int k = 0;
     while(ptrTemp != destination){
         if(ptrTemp != departure){
             if(ptrTemp->distance - departure->distance <= departure->vehiclesInStation[0]){
@@ -472,16 +508,49 @@ void createGraph(ptr_station departure, ptr_station destination, int numOfStatio
         }
         ptrTemp = ptrTemp->next;
     }
-    createGraph(departure->next, destination, numOfStations, lut, adjacencyMatrix);
+    createGraphFwd(departure->next, destination, numOfStations, lut, adjacencyMatrix);
+}
+
+/**
+ * Funzione utilizzata per creare un grafo (in direzione dalla fine all'inizio dell'autostrada).
+ * @param departure è la stazione di partenza.
+ * @param destination è la stazione di arrivo.
+ * @param numOfStations è il numero di stazioni tra la stazione di partenza e quella di arrivo.
+ * @param lut è il puntatore alla LUT.
+ * @param adjacencyMatrix è il grafo, memorizzato come matrice di adiacenza.
+ */
+void createGraphRev(ptr_station departure, ptr_station destination, int numOfStations, uint32_t * lut, uint32_t **adjacencyMatrix){
+
+    if(departure == destination){
+        return;
+    }
+
+    ptr_station ptrTemp = departure;
+    while(ptrTemp != destination){
+        if(ptrTemp != departure){
+            if(departure->distance - ptrTemp->distance <= departure->vehiclesInStation[0]){
+                adjacencyMatrix[indexOf(lut, numOfStations, departure->distance)][indexOf(lut, numOfStations, ptrTemp->distance)] = ptrTemp->distance - destination->distance;
+            }
+        }
+        if(ptrTemp->previous == destination){
+            if(departure->distance - ptrTemp->previous->distance <= departure->vehiclesInStation[0]){
+                adjacencyMatrix[indexOf(lut, numOfStations, departure->distance)][indexOf(lut, numOfStations, ptrTemp->previous->distance)] = 1;
+            }
+        }
+        ptrTemp = ptrTemp->previous;
+    }
+    createGraphRev(departure->previous, destination, numOfStations, lut, adjacencyMatrix);
 }
 
 /**
  * Funzione per ricevere in modo sicuro l'input.
  * @param s è il buffer per lo stream di input.
  */
-void safe_fgets(char *s){
+bool safe_fgets(char *s){
     if(fgets(s, BUFF_LEN, stdin) == NULL){
-        exit(EXIT_FAILURE);
+        return FALSE;
+    } else {
+        return TRUE;
     }
 }
 
@@ -692,7 +761,7 @@ void addVehicle(ptr_station ptStations, uint32_t distance, uint32_t vehicle){
 void removeVehicle(ptr_station ptStations, uint32_t distance, uint32_t vehicleToRemove){
     ptr_station ptTemp;
     bool found = TRUE;
-    bool removedVehicle;
+    bool removedVehicle = FALSE;
     int i;
 
     ptTemp = ptStations;
