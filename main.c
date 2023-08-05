@@ -675,11 +675,17 @@ ptr_station removeStation(ptr_station ptStations, uint32_t distance){
     if(ptTemp == NULL){
         found = FALSE;
     } else {
-        if(ptTempPrevious == NULL){
+        if(ptTempPrevious == NULL && ptTemp->next == NULL){
+            /* Unico elemento della lista */
+            ptStations = NULL;
+            free(ptTemp);
+        } else if(ptTempPrevious == NULL){
+            /* Primo elemento, ma ce ne sono altri dopo */
             ptTemp->next->previous = ptTempPrevious;
             ptStations = ptTemp->next;
             free(ptTemp);
         } else if(ptTemp->next == NULL){
+            /* Ultimo elemento */
             ptTempPrevious->next = NULL;
             free(ptTemp);
         } else {
