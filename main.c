@@ -1,8 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <limits.h>
 
-#define DEBUG 1
+// #define DEBUG 1
 
 #define FALSE 0
 #define TRUE (!FALSE)
@@ -398,7 +399,7 @@ void printPath(int *parent, int j, uint32_t *lut) {
     }
 
     printPath(parent, parent[j], lut);
-    printf("%d ", lut[j]);
+    printf(" %d", lut[j]);
 }
 
 /**
@@ -447,7 +448,7 @@ void dijkstra(uint32_t **graph, int src, int dest, uint32_t *lut, int numOfStati
         }
     }
     if(foundPath){
-        printf("%u ", lut[src]);
+        printf("%u", lut[src]);
         printPath(parent, dest, lut);
     }
     printf("\n");
@@ -641,9 +642,11 @@ ptr_station addStation(ptr_station ptStations, uint32_t distance, uint32_t* vehi
         }
 
         if(!alreadyPresent){
-            printf("aggiunta stazione\n");
+            // printf("aggiunta stazione\n");
+            printf("aggiunta\n");
         } else {
-            printf("non aggiunta stazione\n");
+            // printf("non aggiunta stazione\n");
+            printf("non aggiunta\n");
             free(ptTempToAdd);
         }
     }
@@ -746,9 +749,11 @@ void addVehicle(ptr_station ptStations, uint32_t distance, uint32_t vehicle){
     }
 
     if(!found){
-        printf("non aggiunta auto\n");
+        // printf("non aggiunta auto\n");
+        printf("non aggiunta\n");
     } else {
-        printf("aggiunta auto\n");
+        // printf("aggiunta auto\n");
+        printf("aggiunta\n");
     }
 }
 
