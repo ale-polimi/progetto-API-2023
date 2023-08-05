@@ -34,23 +34,8 @@ typedef t_station* ptr_station;
 typedef int bool;
 typedef int direction;
 
-
-// Struttura per rappresentare un nodo
-struct Node {
-    int vertex;     // Indice del nodo
-    int distance;   // Distanza minima dal nodo di origine
-    int steps;      // Numero di passi dal nodo di origine
-} t_node;
-void dijkstra(int **graph, int src, int dest, int *lut, int numOfStations);
-void swapHeap(struct Node* x, struct Node* y);
-void printSolution(int dist[], int parent[], int src, int *lut, int);
-int minDistance(uint32_t dist[], bool visited[], int numOfStations);
-
-
-
-
-
-
+void dijkstra(uint32_t **, int, int, int *, int);
+int minDistance(uint32_t *, bool *, int);
 
 ptr_station addStation(ptr_station, uint32_t, uint32_t*);
 ptr_station removeStation(ptr_station, uint32_t);
@@ -73,9 +58,9 @@ ptr_station findStation(ptr_station, uint32_t);
 void resetArray(bool *, int);
 
 void createGraph(ptr_station, ptr_station, int, uint32_t *, uint32_t**);
-int indexOf(uint32_t *lut, int length, uint32_t distance);
+int indexOf(uint32_t *, int, uint32_t);
 
-void printMatrix(uint32_t **pInt, int stations);
+void printMatrix(uint32_t **, int);
 
 int main() {
     ptr_station autostrada;
@@ -327,14 +312,22 @@ void printMatrix(uint32_t **graph, int length) {
             }
         }
     }
-
 }
+
 /*
+ * =========================================
+ *      START OF PATHFINDING FUNCTIONS.
  * =========================================
  */
 
-
-int minDistance(uint32_t dist[], bool visited[], int numOfStations) {
+/**
+ * Funzione per trovare la distanza minima da un nodo al successivo.
+ * @param dist è l'array delle distanze tra i nodi.
+ * @param visited è l'array che indica se i nodi sono stati visitati.
+ * @param numOfStations è il numero di stazioni tra la stazione di inizio e quella di fine.
+ * @return
+ */
+int minDistance(uint32_t *dist, bool *visited, int numOfStations) {
     int min = INT_MAX, min_index;
 
     for (int v = 0; v < numOfStations; v++) {
@@ -347,126 +340,44 @@ int minDistance(uint32_t dist[], bool visited[], int numOfStations) {
     return min_index;
 }
 
-// Funzione di utilità per scambiare due nodi
-void swapHeap(struct Node* x, struct Node* y) {
-    struct Node temp = *x;
-    *x = *y;
-    *y = temp;
-}
+/**
+ * Funzione per stampare il percorso quando è stato trovato.
+ * @param parent è il puntatore all'array contenente il parente del nodo i-esimo.
+ * @param j è l'indice da cui partire.
+ * @param lut è il puntatore alla LUT.
+ */
+void printPath(int *parent, int j, int *lut) {
 
-// Funzione per eseguire heapify in base al numero di passi
-void minHeapify(struct Node heap[], int size, int idx) {
-    int smallest = idx;
-    int left = 2 * idx + 1;
-    int right = 2 * idx + 2;
-
-    if (left < size && heap[left].steps < heap[smallest].steps)
-        smallest = left;
-
-    if (right < size && heap[right].steps < heap[smallest].steps)
-        smallest = right;
-
-    if (smallest != idx) {
-        swapHeap(&heap[idx], &heap[smallest]);
-        minHeapify(heap, size, smallest);
-    }
-}
-
-// Funzione per mantenere la proprietà di min-heap
-void buildMinHeap(struct Node heap[], int size) {
-    int i;
-    for (i = (size - 1) / 2; i >= 0; i--)
-        minHeapify(heap, size, i);
-}
-
-// Funzione per estrarre il nodo minimo dalla coda di priorità
-struct Node extractMin(struct Node heap[], int* size) {
-    struct Node minNode = heap[0];
-    heap[0] = heap[(*size) - 1];
-    (*size)--;
-    minHeapify(heap, *size, 0);
-    return minNode;
-}
-
-// Funzione di utilità per aggiornare la distanza e il numero di passi di un nodo
-void updateDistanceAndSteps(struct Node heap[], int vertex, int newDistance, int newSteps, int* size) {
-    int i;
-    for (i = 0; i < *size; i++) {
-        if (heap[i].vertex == vertex) {
-            heap[i].distance = newDistance;
-            heap[i].steps = newSteps;
-            break;
-        }
-    }
-    buildMinHeap(heap, *size);
-}
-
-// Funzione di utilità per trovare il nodo con la distanza minima e il numero di passi più basso
-int minDistanceWithSteps(struct Node heap[], int size) {
-    int minDist = INT_MAX;
-    int minSteps = INT_MAX;
-    int minVertex = -1;
-
-    for (int i = 0; i < size; i++) {
-        if (heap[i].distance < minDist) {
-            minDist = heap[i].distance;
-            minSteps = heap[i].steps;
-            minVertex = heap[i].vertex;
-        } else if (heap[i].distance == minDist && heap[i].steps < minSteps) {
-            minSteps = heap[i].steps;
-            minVertex = heap[i].vertex;
-        }
-    }
-
-    return minVertex;
-}
-
-// Funzione di utilità per trovare l'indice di un nodo nella coda di priorità
-int findNodeIndex(struct Node heap[], int vertex, int size) {
-    for (int i = 0; i < size; i++) {
-        if (heap[i].vertex == vertex) {
-            return i;
-        }
-    }
-    return -1;
-}
-
-// Funzione per stampare il percorso dal nodo di origine al nodo di destinazione
-void printPath(int parent[], int j, int *lut) {
-    if (parent[j] == -1)
+    if (parent[j] == -1){
         return;
+    }
 
     printPath(parent, parent[j], lut);
     printf("%d ", lut[j]);
 }
 
-void dijkstra(int **graph, int src, int dest, int *lut, int numOfStations) {
-    uint32_t *dist = malloc(numOfStations*sizeof(uint32_t));      // Distanza minima dal nodo di origine
+/**
+ * Algoritmo di Dijkstra per trovare il miglior percorso sul grafo.
+ * @param graph è il grafo salvato come matrice di adiacenza.
+ * @param src è il nodo di partenza.
+ * @param dest è il nodo di destinazione.
+ * @param lut è la LUT che trasforma le distanze in valori da 0 a numOfStations.
+ * @param numOfStations è il numero di stazioni tra la partenza e la destinazione.
+ */
+void dijkstra(uint32_t **graph, int src, int dest, int *lut, int numOfStations) {
+    uint32_t *dist = malloc(numOfStations*sizeof(uint32_t));
     bool *visited = malloc(numOfStations*sizeof(bool));
-    // int *steps = malloc(numOfStations*sizeof(int));     // Numero di passi dal nodo di origine
-    int *parent = malloc(numOfStations*sizeof(int));    // Percorso ottimo
+    int *parent = malloc(numOfStations*sizeof(int));
 
-    // Coda di priorità per gestire i nodi in base alla distanza e al numero di passi
-    // struct Node *priorityQueue = malloc(numOfStations*sizeof(t_node));
-    // int pqSize = numOfStations;
-
-    // Inizializza le strutture dati
+    /* Init data structures */
     for (int i = 0; i < numOfStations; i++) {
         dist[i] = UINT32_MAX;
         visited[i] = FALSE;
-        // steps[i] = INT_MAX;
         parent[i] = -1;
-        /*
-        priorityQueue[i].vertex = i;
-        priorityQueue[i].distance = INT_MAX;
-        priorityQueue[i].steps = INT_MAX;
-         */
     }
 
-    // La distanza dal nodo di origine a se stesso è sempre 0
+    /* Distance of source from source is always 0 */
     dist[src] = 0;
-    // steps[src] = 0;
-    // updateDistanceAndSteps(priorityQueue, src, 0, 0, &pqSize);
 
     for(int count = 0; count < numOfStations - 1; count++){
         int u = minDistance(dist, visited, numOfStations);
@@ -482,30 +393,14 @@ void dijkstra(int **graph, int src, int dest, int *lut, int numOfStations) {
         }
     }
 
-    /*
-    // Trova il percorso ottimo
-    while (pqSize > 0) {
-        int u = minDistanceWithSteps(priorityQueue, pqSize);
-        int uIndex = findNodeIndex(priorityQueue, u, pqSize);
-
-        // Estrai il nodo minimo dalla coda di priorità
-        struct Node uNode = extractMin(priorityQueue, &pqSize);
-
-        for (int v = 0; v < numOfStations; v++) {
-            if(u >= 0){
-                if (graph[u][v] && dist[u] + graph[u][v] < dist[v]) {
-                    dist[v] = dist[u] + graph[u][v];
-                    steps[v] = steps[u] + 1;
-                    parent[v] = u;
-                    updateDistanceAndSteps(priorityQueue, v, dist[v], steps[v], &pqSize);
-                }
-            }
-        }
+#ifdef DEBUG
+    printf("Parent = [");
+    for(int i = 0; i < numOfStations - 1; i++){
+        printf("%d ", parent[i]);
     }
-     */
+    printf("%d]\n", parent[numOfStations - 1]);
+#endif
 
-    // Stampa la soluzione
-    //printSolution(dist, parent, src, lut, numOfStations);
     int foundPath = 1;
     for(int k = 0; k < numOfStations; k++){
         if(dist[k] == UINT32_MAX){
@@ -522,24 +417,22 @@ void dijkstra(int **graph, int src, int dest, int *lut, int numOfStations) {
 
     free(dist);
     free(visited);
-    // free(steps);
     free(parent);
-    // free(priorityQueue);
 }
 
 /*
  * =========================================
+ *      END OF PATHFINDING FUNCTIONS.
+ * =========================================
  */
 
-void printSolution(int dist[], int parent[], int src, int *lut, int numOfStations) {
-    printf("Nodo\tDistanza\tPercorso\n");
-    for (int i = 0; i < numOfStations; i++) {
-        printf("%d\t%d\t%d ", lut[i], dist[i], lut[src]);
-        printPath(parent, i, lut);
-        printf("\n");
-    }
-}
-
+/**
+ * Funzione che trova l'indice della stazione all'interno della LUT (Look-Up Table).
+ * @param lut è il puntatore alla LUT.
+ * @param length è la lunghezza della LUT.
+ * @param distance è la distanza (ID della stazione) a cui si trova la stazione da cercare.
+ * @return l'indice della LUT contenente tale stazione.
+ */
 int indexOf(uint32_t *lut, int length, uint32_t distance) {
     for(int i = 0; i < length; i++){
         if(lut[i] == distance){
@@ -550,6 +443,14 @@ int indexOf(uint32_t *lut, int length, uint32_t distance) {
     return -1;
 }
 
+/**
+ * Funzione utilizzata per creare un grafo.
+ * @param departure è la stazione di partenza.
+ * @param destination è la stazione di arrivo.
+ * @param numOfStations è il numero di stazioni tra la stazione di partenza e quella di arrivo.
+ * @param lut è il puntatore alla LUT.
+ * @param adjacencyMatrix è il grafo, memorizzato come matrice di adiacenza.
+ */
 void createGraph(ptr_station departure, ptr_station destination, int numOfStations, uint32_t * lut, uint32_t **adjacencyMatrix){
 
     if(departure == destination){
