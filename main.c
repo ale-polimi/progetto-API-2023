@@ -37,35 +37,40 @@ typedef t_station* ptr_station;
 typedef int bool;
 typedef int direction;
 
+/* REMOVE LATER */
+void printMatrix(uint32_t **, int);
+void printStations(ptr_station);
+/* END OF REMOVE LATER */
+
+// Specification commands' functions
+bool safe_fgets(char*);
+ptr_station addStation(ptr_station, uint32_t, uint16_t, uint32_t*);
+ptr_station removeStation(ptr_station, uint32_t);
+void addVehicle(ptr_station, uint32_t, uint32_t);
+void removeVehicle(ptr_station, uint32_t, uint32_t);
+
+// Graph creation
+void createGraphFwd(ptr_station, ptr_station, int, uint32_t *, uint32_t**);
+void createGraphRev(ptr_station, ptr_station, int, uint32_t *, uint32_t**);
+
+// Path finding
 int minDistance(uint32_t *, bool *, int);
 void printPath(int *, int, uint32_t *);
 void dijkstra(uint32_t **, int, int, uint32_t *, int);
 
-ptr_station addStation(ptr_station, uint32_t, uint16_t, uint32_t*);
-ptr_station removeStation(ptr_station, uint32_t);
-ptr_station destroyStations(ptr_station);
-void addVehicle(ptr_station, uint32_t, uint32_t);
-void removeVehicle(ptr_station, uint32_t, uint32_t);
-
-int findNumOfStations(ptr_station, uint32_t, uint32_t, direction);
-
-void printStations(ptr_station);
-
-bool safe_fgets(char*);
-
-// Sorting functions.
+// Sorting functions
 void sortVehicles(uint32_t*, int, int);
 int partition(uint32_t*, int, int);
 void swap(uint32_t*, uint32_t*);
 
-ptr_station findStation(ptr_station, uint32_t);
+// Utility functions
 void resetArray(bool *, int);
-
-void createGraphFwd(ptr_station, ptr_station, int, uint32_t *, uint32_t**);
-void createGraphRev(ptr_station, ptr_station, int, uint32_t *, uint32_t**);
+ptr_station findStation(ptr_station, uint32_t);
+int findNumOfStations(ptr_station, uint32_t, uint32_t, direction);
+ptr_station destroyStations(ptr_station);
 int indexOf(uint32_t *, int, uint32_t);
-
-void printMatrix(uint32_t **, int);
+int binarySearchFwd(uint32_t *, int, int, uint32_t);
+int binarySearchRev(uint32_t *, int, int, uint32_t);
 
 int main() {
     ptr_station autostrada;
@@ -351,6 +356,8 @@ printMatrix(adjacencyMatrix, numOfStations + 2);
     return 0;
 }
 
+/* REMOVE LATER */
+
 void printMatrix(uint32_t **graph, int length) {
     for(int row = 0; row < length; row++){
         for(int col = 0; col < length; col++){
@@ -360,204 +367,6 @@ void printMatrix(uint32_t **graph, int length) {
                 printf("| %d ", graph[row][col]);
             }
         }
-    }
-}
-
-/*
- * =========================================
- *      START OF PATHFINDING FUNCTIONS.
- * =========================================
- */
-
-/**
- * Funzione per trovare la distanza minima da un nodo al successivo.
- * @param dist è l'array delle distanze tra i nodi.
- * @param visited è l'array che indica se i nodi sono stati visitati.
- * @param numOfStations è il numero di stazioni tra la stazione di inizio e quella di fine.
- * @return
- */
-int minDistance(uint32_t *dist, bool *visited, int numOfStations) {
-    int min = INT_MAX;
-    int min_index = 0;
-
-    for (int v = 0; v < numOfStations; v++) {
-        if (!visited[v] && dist[v] <= min) {
-            min = dist[v];
-            min_index = v;
-        }
-    }
-
-    return min_index;
-}
-
-/**
- * Funzione per stampare il percorso quando è stato trovato.
- * @param parent è il puntatore all'array contenente il parente del nodo i-esimo.
- * @param j è l'indice da cui partire.
- * @param lut è il puntatore alla LUT.
- */
-void printPath(int *parent, int j, uint32_t *lut) {
-
-    if (parent[j] == -1){
-        return;
-    }
-
-    printPath(parent, parent[j], lut);
-    printf(" %d", lut[j]);
-}
-
-/**
- * Algoritmo di Dijkstra per trovare il miglior percorso sul grafo.
- * @param graph è il grafo salvato come matrice di adiacenza.
- * @param src è il nodo di partenza.
- * @param dest è il nodo di destinazione.
- * @param lut è la LUT che trasforma le distanze in valori da 0 a numOfStations.
- * @param numOfStations è il numero di stazioni tra la partenza e la destinazione.
- */
-void dijkstra(uint32_t **graph, int src, int dest, uint32_t *lut, int numOfStations) {
-    uint32_t *dist = malloc(numOfStations*sizeof(uint32_t));
-    bool *visited = malloc(numOfStations*sizeof(bool));
-    int *parent = malloc(numOfStations*sizeof(int));
-
-    /* Init data structures */
-    for (int i = 0; i < numOfStations; i++) {
-        dist[i] = UINT32_MAX;
-        visited[i] = FALSE;
-        parent[i] = -1;
-    }
-
-    /* Distance of source from source is always 0 */
-    dist[src] = 0;
-
-    for(int count = 0; count < numOfStations - 1; count++){
-        int u = minDistance(dist, visited, numOfStations);
-        visited[u] = TRUE;
-
-        for(int v = 0; v < numOfStations; v++){
-            if(u >= 0){
-                if(!visited[v] && graph[u][v] && dist[u] + graph[u][v] < dist[v]){
-                    parent[v] = u;
-                    dist[v] = dist[u] + graph[u][v];
-                }
-            }
-        }
-    }
-
-    int foundPath = 1;
-    for(int k = 0; k < numOfStations; k++){
-        if(dist[k] == UINT32_MAX){
-            printf("nessun percorso");
-            foundPath = 0;
-            break;
-        }
-    }
-    if(foundPath){
-        printf("%u", lut[src]);
-        printPath(parent, dest, lut);
-    }
-    printf("\n");
-
-    free(dist);
-    free(visited);
-    free(parent);
-}
-
-/*
- * =========================================
- *      END OF PATHFINDING FUNCTIONS.
- * =========================================
- */
-
-/**
- * Funzione che trova l'indice della stazione all'interno della LUT (Look-Up Table).
- * @param lut è il puntatore alla LUT.
- * @param length è la lunghezza della LUT.
- * @param distance è la distanza (ID della stazione) a cui si trova la stazione da cercare.
- * @return l'indice della LUT contenente tale stazione.
- */
-int indexOf(uint32_t *lut, int length, uint32_t distance) {
-    for(int i = 0; i < length; i++){
-        if(lut[i] == distance){
-            return i;
-        }
-    }
-
-    return -1;
-}
-
-/**
- * Funzione utilizzata per creare un grafo (in direzione dall'inizio alla fine dell'autostrada).
- * @param departure è la stazione di partenza.
- * @param destination è la stazione di arrivo.
- * @param numOfStations è il numero di stazioni tra la stazione di partenza e quella di arrivo.
- * @param lut è il puntatore alla LUT.
- * @param adjacencyMatrix è il grafo, memorizzato come matrice di adiacenza.
- */
-void createGraphFwd(ptr_station departure, ptr_station destination, int numOfStations, uint32_t * lut, uint32_t **adjacencyMatrix){
-
-    if(departure == destination){
-        return;
-    }
-
-    ptr_station ptrTemp = departure;
-    int row = indexOf(lut, numOfStations, departure->distance);
-    int col;
-    while(ptrTemp != destination){
-        col = indexOf(lut, numOfStations, ptrTemp->distance);
-        if(ptrTemp->distance - departure->distance <= departure->vehiclesInStation[departure->maxCapacityIndex]){
-            adjacencyMatrix[row][col] = ptrTemp->distance - departure->distance;
-        }
-        ptrTemp = ptrTemp->next;
-    }
-    col = indexOf(lut, numOfStations, ptrTemp->distance);
-    if(ptrTemp->distance - departure->distance <= departure->vehiclesInStation[departure->maxCapacityIndex]){
-        adjacencyMatrix[row][col] = ptrTemp->distance - departure->distance;
-    }
-
-    createGraphFwd(departure->next, destination, numOfStations, lut, adjacencyMatrix);
-}
-
-/**
- * Funzione utilizzata per creare un grafo (in direzione dalla fine all'inizio dell'autostrada).
- * @param departure è la stazione di partenza.
- * @param destination è la stazione di arrivo.
- * @param numOfStations è il numero di stazioni tra la stazione di partenza e quella di arrivo.
- * @param lut è il puntatore alla LUT.
- * @param adjacencyMatrix è il grafo, memorizzato come matrice di adiacenza.
- */
-void createGraphRev(ptr_station departure, ptr_station destination, int numOfStations, uint32_t * lut, uint32_t **adjacencyMatrix){
-
-    if(departure == destination){
-        return;
-    }
-
-    ptr_station ptrTemp = departure;
-    int row = indexOf(lut, numOfStations, departure->distance);
-    int col;
-    while(ptrTemp != destination){
-        col = indexOf(lut, numOfStations, ptrTemp->distance);
-        if(departure->distance - ptrTemp->distance <= departure->vehiclesInStation[departure->maxCapacityIndex]){
-            adjacencyMatrix[row][col] = ptrTemp->distance - destination->distance;
-        }
-        ptrTemp = ptrTemp->previous;
-    }
-    col = indexOf(lut, numOfStations, ptrTemp->distance);
-    if(departure->distance - ptrTemp->distance <= departure->vehiclesInStation[departure->maxCapacityIndex]){
-        adjacencyMatrix[row][col] = 1;
-    }
-
-    createGraphRev(departure->previous, destination, numOfStations, lut, adjacencyMatrix);
-}
-
-/**
- * Funzione per ricevere in modo sicuro l'input.
- * @param s è il buffer per lo stream di input.
- */
-bool safe_fgets(char *s){
-    if(fgets(s, BUFF_LEN, stdin) == NULL){
-        return FALSE;
-    } else {
-        return TRUE;
     }
 }
 
@@ -575,6 +384,20 @@ void printStations(ptr_station ptStations){
             printf("\t%u\n", ptTemp->vehiclesInStation[i]);
         }
         ptTemp = ptTemp->next;
+    }
+}
+
+/* END OF REMOVE LATER */
+
+/**
+ * Funzione per ricevere in modo sicuro l'input.
+ * @param s è il buffer per lo stream di input.
+ */
+bool safe_fgets(char *s){
+    if(fgets(s, BUFF_LEN, stdin) == NULL){
+        return FALSE;
+    } else {
+        return TRUE;
     }
 }
 
@@ -716,24 +539,6 @@ ptr_station removeStation(ptr_station ptStations, uint32_t distance){
 }
 
 /**
- * Funzione necessaria per la rimozione di tutte le stazioni.
- * @param ptrStations è il puntatore all'inizio dell'autostrada.
- * @return il puntatore all'inizio della lista aggiornata.
- */
-ptr_station destroyStations(ptr_station ptrStations){
-    ptr_station ptTemp;
-
-    while(ptrStations != NULL){
-        ptTemp = ptrStations;
-        ptrStations = ptrStations->next;
-        free(ptTemp);
-    }
-    ptrStations = NULL;
-
-    return(ptrStations);
-}
-
-/**
  * Aggiunta di un veicolo nel parco macchine della stazione di servizio. Se la stazione non esiste, non si aggiunge il veicolo.
  * @param ptStations è il puntatore all'inizio dell'autostrada.
  * @param distance è la distanza della stazione alla quale si deve aggiungere il veicolo.
@@ -821,67 +626,190 @@ void removeVehicle(ptr_station ptStations, uint32_t distance, uint32_t vehicleTo
     }
 }
 
-/**
- * Funzione che trova il numero di stazioni intermedie tra l'inizio e la fine del percorso.
- * @param ptrStations è il puntatore all'inizio dell'autostrada.
- * @param from è la stazione di partenza.
- * @param to è la stazione di arrivo.
- * @param direction è la direzione del percorso. FWD = da sinistra a destra, REV = da destra a sinistra.
- * @return il numero di stazioni intermedie.
+/*
+ * =======================
+ * START OF GRAPH CREATION
+ * =======================
  */
-int findNumOfStations(ptr_station ptrStations, uint32_t from, uint32_t to, direction direction) {
-    ptr_station ptTemp;
-    ptr_station ptStart;
-    ptr_station ptEnd;
-    int numOfStations = 0;
 
-    switch(direction){
-        case FWD:
-            ptTemp = ptrStations;
-            while(ptTemp->distance != from){
-                ptTemp = ptTemp->next;
-            }
-            ptStart = ptTemp;
+/**
+ * Funzione utilizzata per creare un grafo (in direzione dall'inizio alla fine dell'autostrada).
+ * @param departure è la stazione di partenza.
+ * @param destination è la stazione di arrivo.
+ * @param numOfStations è il numero di stazioni tra la stazione di partenza e quella di arrivo.
+ * @param lut è il puntatore alla LUT.
+ * @param adjacencyMatrix è il grafo, memorizzato come matrice di adiacenza.
+ */
+void createGraphFwd(ptr_station departure, ptr_station destination, int numOfStations, uint32_t * lut, uint32_t **adjacencyMatrix){
 
-            while(ptTemp->distance != to){
-                ptTemp = ptTemp->next;
-            }
-            ptEnd = ptTemp;
-
-            while(ptStart != ptEnd){
-                numOfStations++;
-                ptStart = ptStart->next;
-            }
-            break;
-        case REV:
-            ptTemp = ptrStations;
-            while(ptTemp->distance != from){
-                ptTemp = ptTemp->next;
-            }
-            ptStart = ptTemp;
-
-            ptTemp = ptrStations;
-            while(ptTemp->distance != to){
-                ptTemp = ptTemp->next;
-            }
-            ptEnd = ptTemp;
-
-            while(ptStart != ptEnd){
-                numOfStations++;
-                ptStart = ptStart->previous;
-            }
-            break;
-        default:
-            numOfStations = 0;
+    if(departure == destination){
+        return;
     }
 
-    return (numOfStations - 1);
+    ptr_station ptrTemp = departure;
+    int row = indexOf(lut, numOfStations, departure->distance);
+    int col;
+    while(ptrTemp != destination){
+        col = indexOf(lut, numOfStations, ptrTemp->distance);
+        if(ptrTemp->distance - departure->distance <= departure->vehiclesInStation[departure->maxCapacityIndex]){
+            adjacencyMatrix[row][col] = ptrTemp->distance - departure->distance;
+        }
+        ptrTemp = ptrTemp->next;
+    }
+    col = indexOf(lut, numOfStations, ptrTemp->distance);
+    if(ptrTemp->distance - departure->distance <= departure->vehiclesInStation[departure->maxCapacityIndex]){
+        adjacencyMatrix[row][col] = ptrTemp->distance - departure->distance;
+    }
+
+    createGraphFwd(departure->next, destination, numOfStations, lut, adjacencyMatrix);
 }
 
+/**
+ * Funzione utilizzata per creare un grafo (in direzione dalla fine all'inizio dell'autostrada).
+ * @param departure è la stazione di partenza.
+ * @param destination è la stazione di arrivo.
+ * @param numOfStations è il numero di stazioni tra la stazione di partenza e quella di arrivo.
+ * @param lut è il puntatore alla LUT.
+ * @param adjacencyMatrix è il grafo, memorizzato come matrice di adiacenza.
+ */
+void createGraphRev(ptr_station departure, ptr_station destination, int numOfStations, uint32_t * lut, uint32_t **adjacencyMatrix){
+
+    if(departure == destination){
+        return;
+    }
+
+    ptr_station ptrTemp = departure;
+    int row = indexOf(lut, numOfStations, departure->distance);
+    int col;
+    while(ptrTemp != destination){
+        col = indexOf(lut, numOfStations, ptrTemp->distance);
+        if(departure->distance - ptrTemp->distance <= departure->vehiclesInStation[departure->maxCapacityIndex]){
+            adjacencyMatrix[row][col] = ptrTemp->distance - destination->distance;
+        }
+        ptrTemp = ptrTemp->previous;
+    }
+    col = indexOf(lut, numOfStations, ptrTemp->distance);
+    if(departure->distance - ptrTemp->distance <= departure->vehiclesInStation[departure->maxCapacityIndex]){
+        adjacencyMatrix[row][col] = 1;
+    }
+
+    createGraphRev(departure->previous, destination, numOfStations, lut, adjacencyMatrix);
+}
 
 /*
  * =======================
- * Utility functions below
+ *  END OF GRAPH CREATION
+ * =======================
+ */
+
+/*
+ * =========================================
+ *      START OF PATHFINDING FUNCTIONS.
+ * =========================================
+ */
+
+/**
+ * Funzione per trovare la distanza minima da un nodo al successivo.
+ * @param dist è l'array delle distanze tra i nodi.
+ * @param visited è l'array che indica se i nodi sono stati visitati.
+ * @param numOfStations è il numero di stazioni tra la stazione di inizio e quella di fine.
+ * @return
+ */
+int minDistance(uint32_t *dist, bool *visited, int numOfStations) {
+    int min = INT_MAX;
+    int min_index = 0;
+
+    for (int v = 0; v < numOfStations; v++) {
+        if (!visited[v] && dist[v] <= min) {
+            min = dist[v];
+            min_index = v;
+        }
+    }
+
+    return min_index;
+}
+
+/**
+ * Funzione per stampare il percorso quando è stato trovato.
+ * @param parent è il puntatore all'array contenente il parente del nodo i-esimo.
+ * @param j è l'indice da cui partire.
+ * @param lut è il puntatore alla LUT.
+ */
+void printPath(int *parent, int j, uint32_t *lut) {
+
+    if (parent[j] == -1){
+        return;
+    }
+
+    printPath(parent, parent[j], lut);
+    printf(" %d", lut[j]);
+}
+
+/**
+ * Algoritmo di Dijkstra per trovare il miglior percorso sul grafo.
+ * @param graph è il grafo salvato come matrice di adiacenza.
+ * @param src è il nodo di partenza.
+ * @param dest è il nodo di destinazione.
+ * @param lut è la LUT che trasforma le distanze in valori da 0 a numOfStations.
+ * @param numOfStations è il numero di stazioni tra la partenza e la destinazione.
+ */
+void dijkstra(uint32_t **graph, int src, int dest, uint32_t *lut, int numOfStations) {
+    uint32_t *dist = malloc(numOfStations*sizeof(uint32_t));
+    bool *visited = malloc(numOfStations*sizeof(bool));
+    int *parent = malloc(numOfStations*sizeof(int));
+
+    /* Init data structures */
+    for (int i = 0; i < numOfStations; i++) {
+        dist[i] = UINT32_MAX;
+        visited[i] = FALSE;
+        parent[i] = -1;
+    }
+
+    /* Distance of source from source is always 0 */
+    dist[src] = 0;
+
+    for(int count = 0; count < numOfStations - 1; count++){
+        int u = minDistance(dist, visited, numOfStations);
+        visited[u] = TRUE;
+
+        for(int v = 0; v < numOfStations; v++){
+            if(u >= 0){
+                if(!visited[v] && graph[u][v] && dist[u] + graph[u][v] < dist[v]){
+                    parent[v] = u;
+                    dist[v] = dist[u] + graph[u][v];
+                }
+            }
+        }
+    }
+
+    int foundPath = 1;
+    for(int k = 0; k < numOfStations; k++){
+        if(dist[k] == UINT32_MAX){
+            printf("nessun percorso");
+            foundPath = 0;
+            break;
+        }
+    }
+    if(foundPath){
+        printf("%u", lut[src]);
+        printPath(parent, dest, lut);
+    }
+    printf("\n");
+
+    free(dist);
+    free(visited);
+    free(parent);
+}
+
+/*
+ * =========================================
+ *      END OF PATHFINDING FUNCTIONS.
+ * =========================================
+ */
+
+/*
+ * =======================
+ * UTILITY FUNCTIONS BELOW
  * =======================
  */
 
@@ -959,4 +887,147 @@ ptr_station findStation(ptr_station ptrStations, uint32_t distance) {
     }
 
     return ptrTemp;
+}
+
+/**
+ * Funzione che trova il numero di stazioni intermedie tra l'inizio e la fine del percorso.
+ * @param ptrStations è il puntatore all'inizio dell'autostrada.
+ * @param from è la stazione di partenza.
+ * @param to è la stazione di arrivo.
+ * @param direction è la direzione del percorso. FWD = da sinistra a destra, REV = da destra a sinistra.
+ * @return il numero di stazioni intermedie.
+ */
+int findNumOfStations(ptr_station ptrStations, uint32_t from, uint32_t to, direction direction) {
+    ptr_station ptTemp;
+    ptr_station ptStart;
+    ptr_station ptEnd;
+    int numOfStations = 0;
+
+    switch(direction){
+        case FWD:
+            ptTemp = ptrStations;
+            while(ptTemp->distance != from){
+                ptTemp = ptTemp->next;
+            }
+            ptStart = ptTemp;
+
+            while(ptTemp->distance != to){
+                ptTemp = ptTemp->next;
+            }
+            ptEnd = ptTemp;
+
+            while(ptStart != ptEnd){
+                numOfStations++;
+                ptStart = ptStart->next;
+            }
+            break;
+        case REV:
+            ptTemp = ptrStations;
+            while(ptTemp->distance != from){
+                ptTemp = ptTemp->next;
+            }
+            ptStart = ptTemp;
+
+            ptTemp = ptrStations;
+            while(ptTemp->distance != to){
+                ptTemp = ptTemp->next;
+            }
+            ptEnd = ptTemp;
+
+            while(ptStart != ptEnd){
+                numOfStations++;
+                ptStart = ptStart->previous;
+            }
+            break;
+        default:
+            numOfStations = 0;
+    }
+
+    return (numOfStations - 1);
+}
+
+/**
+ * Funzione necessaria per la rimozione di tutte le stazioni.
+ * @param ptrStations è il puntatore all'inizio dell'autostrada.
+ * @return il puntatore all'inizio della lista aggiornata.
+ */
+ptr_station destroyStations(ptr_station ptrStations){
+    ptr_station ptTemp;
+
+    while(ptrStations != NULL){
+        ptTemp = ptrStations;
+        ptrStations = ptrStations->next;
+        free(ptTemp);
+    }
+    ptrStations = NULL;
+
+    return(ptrStations);
+}
+
+/**
+ * Funzione che trova l'indice della stazione all'interno della LUT (Look-Up Table).
+ * @param lut è il puntatore alla LUT.
+ * @param length è la lunghezza della LUT.
+ * @param distance è la distanza (ID della stazione) a cui si trova la stazione da cercare.
+ * @return l'indice della LUT contenente tale stazione.
+ */
+int indexOf(uint32_t *lut, int length, uint32_t distance) {
+    /* Binary search for better performance */
+    if(lut[0] < lut[length - 1]){
+        /* Array is in ascending order */
+        return binarySearchFwd(lut, 0, length - 1, distance);
+    } else {
+        /* Array is in descending order */
+        return binarySearchRev(lut, 0, length - 1, distance);
+    }
+}
+
+/**
+ * Ricerca binaria dell'elemento.
+ * @param array è l'array dove effettuare la ricerca.
+ * @param startIndex è l'indice di partenza della ricerca.
+ * @param endIndex è l'indice di fine della ricerca.
+ * @param distanceToFind è l'elemento da trovare.
+ * @return @code i dove i è l'indice dell'elemento, -1 se l'elemento non è stato trovato.
+ */
+int binarySearchFwd(uint32_t *array, int startIndex, int endIndex, uint32_t distanceToFind){
+    int pivotIndex;
+    if(startIndex > endIndex){
+        return -1;
+    }
+
+    pivotIndex = (startIndex + endIndex)/2;
+
+    if(distanceToFind == array[pivotIndex]){
+        return pivotIndex;
+    }
+    if(distanceToFind < array[pivotIndex]){
+        return binarySearchFwd(array, startIndex, pivotIndex - 1, distanceToFind);
+    }
+    return binarySearchFwd(array, pivotIndex + 1, endIndex, distanceToFind);
+}
+
+/**
+ * Ricerca binaria dell'elemento.
+ * @param array è l'array dove effettuare la ricerca.
+ * @param startIndex è l'indice di partenza della ricerca.
+ * @param endIndex è l'indice di fine della ricerca.
+ * @param distanceToFind è l'elemento da trovare.
+ * @return @code i dove i è l'indice dell'elemento, -1 se l'elemento non è stato trovato.
+ */
+int binarySearchRev(uint32_t *array, int startIndex, int endIndex, uint32_t distanceToFind){
+    int pivotIndex;
+    if(startIndex > endIndex){
+        return -1;
+    }
+
+    pivotIndex = (startIndex + endIndex)/2;
+
+    if(distanceToFind == array[pivotIndex]){
+        return pivotIndex;
+    }
+    if(distanceToFind < array[pivotIndex]){
+        return binarySearchRev(array, pivotIndex + 1, endIndex, distanceToFind);
+    }
+    return binarySearchRev(array, startIndex, pivotIndex - 1, distanceToFind);
 }
