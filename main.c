@@ -26,7 +26,9 @@
  */
 typedef struct station {
     uint32_t distance;
+    uint16_t numberOfCars;
     uint32_t vehiclesInStation[NUM_OF_CARS];
+    int maxCapacityIndex;
     struct station *previous;
     struct station *next;
 } t_station;
@@ -39,7 +41,7 @@ int minDistance(uint32_t *, bool *, int);
 void printPath(int *, int, uint32_t *);
 void dijkstra(uint32_t **, int, int, uint32_t *, int);
 
-ptr_station addStation(ptr_station, uint32_t, uint32_t*);
+ptr_station addStation(ptr_station, uint32_t, uint16_t, uint32_t*);
 ptr_station removeStation(ptr_station, uint32_t);
 ptr_station destroyStations(ptr_station);
 void addVehicle(ptr_station, uint32_t, uint32_t);
@@ -79,6 +81,7 @@ int main() {
 
                     int i = 0;
                     uint32_t tempDistance = 0;
+                    uint16_t tempNumOfCars = 0;
                     uint32_t tempVehicles[512] = { 0 };
                     char* p = inputBuffer + 18;
                     while(p < inputBuffer+BUFF_LEN ) {
@@ -89,15 +92,17 @@ int main() {
 
                         if(i == 0){
                             tempDistance = tempValue;
+                        } else if(i == 1) {
+                            tempNumOfCars = tempValue;
                         } else {
-                            tempVehicles[i - 1] = tempValue;
+                            tempVehicles[i - 2] = tempValue;
                         }
                         i++;
 
                         p = end;
                     }
 
-                    autostrada = addStation(autostrada, tempDistance, tempVehicles);
+                    autostrada = addStation(autostrada, tempDistance, tempNumOfCars, tempVehicles);
 
                 } else if(inputBuffer[9] == 'a'){
                     /* Comando: aggiungi-auto */
@@ -211,7 +216,7 @@ int main() {
 
                                 ptTemp = findStation(autostrada, from);
 
-                                if(ptTemp->next->distance - ptTemp->distance <= ptTemp->vehiclesInStation[0]){
+                                if(ptTemp->next->distance - ptTemp->distance <= ptTemp->vehiclesInStation[ptTemp->maxCapacityIndex]){
                                     printf("%u %u\n", ptTemp->distance, ptTemp->next->distance);
                                 } else {
                                     printf("nessun percorso\n");
@@ -253,11 +258,10 @@ int main() {
 
                                 /* Popolare la matrice di adiacenza */
                                 createGraphFwd(startStation, endStation, numOfStations + 2, lut, adjacencyMatrix);
-/*
+
 #ifdef DEBUG
 printMatrix(adjacencyMatrix, numOfStations + 2);
 #endif
- */
 
                                 dijkstra(adjacencyMatrix, indexOf(lut, numOfStations + 2, startStation->distance), indexOf(lut, numOfStations + 2, endStation->distance), lut, numOfStations + 2);
 
@@ -274,7 +278,7 @@ printMatrix(adjacencyMatrix, numOfStations + 2);
 
                                 ptTemp = findStation(autostrada, from);
 
-                                if(ptTemp->distance - ptTemp->previous->distance <= ptTemp->vehiclesInStation[0]){
+                                if(ptTemp->distance - ptTemp->previous->distance <= ptTemp->vehiclesInStation[ptTemp->maxCapacityIndex]){
                                     printf("%u %u\n", ptTemp->distance, ptTemp->previous->distance);
                                 } else {
                                     printf("nessun percorso\n");
@@ -496,19 +500,20 @@ void createGraphFwd(ptr_station departure, ptr_station destination, int numOfSta
     }
 
     ptr_station ptrTemp = departure;
+    int row = indexOf(lut, numOfStations, departure->distance);
+    int col;
     while(ptrTemp != destination){
-        if(ptrTemp != departure){
-            if(ptrTemp->distance - departure->distance <= departure->vehiclesInStation[0]){
-                adjacencyMatrix[indexOf(lut, numOfStations, departure->distance)][indexOf(lut, numOfStations, ptrTemp->distance)] = ptrTemp->distance - departure->distance;
-            }
-        }
-        if(ptrTemp->next == destination){
-            if(ptrTemp->next->distance - departure->distance <= departure->vehiclesInStation[0]){
-                adjacencyMatrix[indexOf(lut, numOfStations, departure->distance)][indexOf(lut, numOfStations, ptrTemp->next->distance)] = ptrTemp->distance - departure->distance;
-            }
+        col = indexOf(lut, numOfStations, ptrTemp->distance);
+        if(ptrTemp->distance - departure->distance <= departure->vehiclesInStation[departure->maxCapacityIndex]){
+            adjacencyMatrix[row][col] = ptrTemp->distance - departure->distance;
         }
         ptrTemp = ptrTemp->next;
     }
+    col = indexOf(lut, numOfStations, ptrTemp->distance);
+    if(ptrTemp->distance - departure->distance <= departure->vehiclesInStation[departure->maxCapacityIndex]){
+        adjacencyMatrix[row][col] = ptrTemp->distance - departure->distance;
+    }
+
     createGraphFwd(departure->next, destination, numOfStations, lut, adjacencyMatrix);
 }
 
@@ -527,19 +532,20 @@ void createGraphRev(ptr_station departure, ptr_station destination, int numOfSta
     }
 
     ptr_station ptrTemp = departure;
+    int row = indexOf(lut, numOfStations, departure->distance);
+    int col;
     while(ptrTemp != destination){
-        if(ptrTemp != departure){
-            if(departure->distance - ptrTemp->distance <= departure->vehiclesInStation[0]){
-                adjacencyMatrix[indexOf(lut, numOfStations, departure->distance)][indexOf(lut, numOfStations, ptrTemp->distance)] = ptrTemp->distance - destination->distance;
-            }
-        }
-        if(ptrTemp->previous == destination){
-            if(departure->distance - ptrTemp->previous->distance <= departure->vehiclesInStation[0]){
-                adjacencyMatrix[indexOf(lut, numOfStations, departure->distance)][indexOf(lut, numOfStations, ptrTemp->previous->distance)] = 1;
-            }
+        col = indexOf(lut, numOfStations, ptrTemp->distance);
+        if(departure->distance - ptrTemp->distance <= departure->vehiclesInStation[departure->maxCapacityIndex]){
+            adjacencyMatrix[row][col] = ptrTemp->distance - destination->distance;
         }
         ptrTemp = ptrTemp->previous;
     }
+    col = indexOf(lut, numOfStations, ptrTemp->distance);
+    if(departure->distance - ptrTemp->distance <= departure->vehiclesInStation[departure->maxCapacityIndex]){
+        adjacencyMatrix[row][col] = 1;
+    }
+
     createGraphRev(departure->previous, destination, numOfStations, lut, adjacencyMatrix);
 }
 
@@ -579,7 +585,7 @@ void printStations(ptr_station ptStations){
  * @param vehicles è il puntatore all'array contenente i veicoli della nuova stazione.
  * @return il puntatore all'inizio della lista aggiornata.
  */
-ptr_station addStation(ptr_station ptStations, uint32_t distance, uint32_t* vehicles){
+ptr_station addStation(ptr_station ptStations, uint32_t distance, uint16_t numOfCars, uint32_t* vehicles){
     ptr_station ptTempToAdd;
     ptr_station ptTemp;
     ptr_station ptTempPrevious;
@@ -591,10 +597,15 @@ ptr_station addStation(ptr_station ptStations, uint32_t distance, uint32_t* vehi
         printf("Errore allocazione memoria.\n");
     } else {
         ptTempToAdd->distance = distance;
+        ptTempToAdd->numberOfCars = numOfCars;
         for(i = 0; i < NUM_OF_CARS; i++){
             ptTempToAdd->vehiclesInStation[i] = vehicles[i];
         }
-        sortVehicles(ptTempToAdd->vehiclesInStation, 0, NUM_OF_CARS - 1);
+        if(numOfCars > 0){
+            sortVehicles(ptTempToAdd->vehiclesInStation, 0, numOfCars - 1);
+        }
+        /* Dopo l'ordinamento il massimo si trova all'indice 0 */
+        ptTempToAdd->maxCapacityIndex = 0;
 
         ptTempToAdd->previous = NULL;
         ptTempToAdd->next = NULL;
@@ -731,8 +742,7 @@ ptr_station destroyStations(ptr_station ptrStations){
 void addVehicle(ptr_station ptStations, uint32_t distance, uint32_t vehicle){
     ptr_station ptTemp;
     bool found = TRUE;
-    bool addedVehicle;
-    int i;
+    bool isSpaceAvailable = TRUE;
 
     ptTemp = ptStations;
     while(ptTemp != NULL && ptTemp->distance != distance){
@@ -742,19 +752,22 @@ void addVehicle(ptr_station ptStations, uint32_t distance, uint32_t vehicle){
     if(ptTemp == NULL){
         found = FALSE;
     } else {
-        i = 0;
-        addedVehicle = FALSE;
-        while(!addedVehicle && i < NUM_OF_CARS){
-            if(ptTemp->vehiclesInStation[i] == 0){
-                ptTemp->vehiclesInStation[i] = vehicle;
-                sortVehicles(ptTemp->vehiclesInStation, 0, NUM_OF_CARS - 1);
-                addedVehicle = TRUE;
+
+        if(ptTemp->numberOfCars >= 512){
+            isSpaceAvailable = FALSE;
+        } else {
+            ptTemp->vehiclesInStation[ptTemp->numberOfCars] = vehicle;
+            /* Se il veicolo che aggiungo ha capacità maggiore del veicolo con capacità maggiore nell'array,
+             * diventa il nuovo veicolo con capacità maggiore.
+             */
+            if(vehicle > ptTemp->vehiclesInStation[ptTemp->maxCapacityIndex]){
+                ptTemp->maxCapacityIndex = ptTemp->numberOfCars;
             }
-            i++;
+            ptTemp->numberOfCars += 1;
         }
     }
 
-    if(!found){
+    if(!found || !isSpaceAvailable){
         // printf("non aggiunta auto\n");
         printf("non aggiunta\n");
     } else {
@@ -783,15 +796,21 @@ void removeVehicle(ptr_station ptStations, uint32_t distance, uint32_t vehicleTo
     if(ptTemp == NULL){
         found = FALSE;
     } else {
-        i = 0;
-        removedVehicle = FALSE;
-        while(!removedVehicle && i < NUM_OF_CARS){
-            if(ptTemp->vehiclesInStation[i] == vehicleToRemove){
-                ptTemp->vehiclesInStation[i] = 0;
-                sortVehicles(ptTemp->vehiclesInStation, 0, NUM_OF_CARS - 1);
-                removedVehicle = TRUE;
+        if(ptTemp->numberOfCars < 1){
+            found = FALSE;
+        } else {
+            i = 0;
+            removedVehicle = FALSE;
+            while(!removedVehicle && i < NUM_OF_CARS){
+                if(ptTemp->vehiclesInStation[i] == vehicleToRemove){
+                    ptTemp->vehiclesInStation[i] = 0;
+                    sortVehicles(ptTemp->vehiclesInStation, 0, ptTemp->numberOfCars - 1);
+                    ptTemp->maxCapacityIndex = 0;
+                    ptTemp->numberOfCars -= 1;
+                    removedVehicle = TRUE;
+                }
+                i++;
             }
-            i++;
         }
     }
 
