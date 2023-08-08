@@ -33,7 +33,14 @@ typedef struct station {
     struct station *next;
 } t_station;
 
+typedef struct graphNode {
+    int nodeReached;
+    uint32_t distance;
+    struct graphNode *nextNode;
+} t_graphNode;
+
 typedef t_station* ptr_station;
+typedef t_graphNode* ptr_graphNode;
 typedef int bool;
 typedef int direction;
 
@@ -50,13 +57,13 @@ void addVehicle(ptr_station, uint32_t, uint32_t);
 void removeVehicle(ptr_station, uint32_t, uint32_t);
 
 // Graph creation
-void createGraphFwd(ptr_station, ptr_station, int, uint32_t *, uint32_t**);
-void createGraphRev(ptr_station, ptr_station, int, uint32_t *, uint32_t**);
+void createGraphFwd(ptr_station, ptr_station, int, uint32_t *, ptr_graphNode*);
+void createGraphRev(ptr_station, ptr_station, int, uint32_t *, ptr_graphNode*);
 
 // Path finding
 int minDistance(uint32_t *, bool *, int);
 void printPath(int *, int, uint32_t *);
-void dijkstra(uint32_t **, int, int, uint32_t *, int);
+void dijkstra(ptr_graphNode *, int, int, uint32_t *, int);
 
 // Sorting functions
 void sortVehicles(uint32_t*, int, int);
@@ -71,6 +78,9 @@ ptr_station destroyStations(ptr_station);
 int indexOf(uint32_t *, int, uint32_t);
 int binarySearchFwd(uint32_t *, int, int, uint32_t);
 int binarySearchRev(uint32_t *, int, int, uint32_t);
+ptr_graphNode addGraphNode(ptr_graphNode, int, uint32_t);
+ptr_graphNode destroyGraph(ptr_graphNode);
+uint32_t getDistanceOfNode(ptr_graphNode *, int, int);
 
 int main() {
     ptr_station autostrada;
@@ -251,29 +261,21 @@ int main() {
                                 }
                                 lut[k] = ptrTemp->distance;
 
-
-                                /* Creare la matrice di adiacenza per il grafo */
-                                uint32_t** adjacencyMatrix = (uint32_t**)malloc((numOfStations + 2)*sizeof(uint32_t*));
-                                for(k = 0; k < numOfStations + 2; k++){
-                                    adjacencyMatrix[k] = (uint32_t*)malloc((numOfStations + 2)*sizeof(uint32_t));
-                                    for(int j = 0; j < numOfStations + 2; j++){
-                                        adjacencyMatrix[k][j] = 0;
-                                    }
+                                /* Creare la lista di adiacenza per il grafo */
+                                ptr_graphNode *adjacencyList = malloc((numOfStations + 2)*sizeof(ptr_graphNode));
+                                for(int kk = 0; kk < numOfStations + 2; kk++){
+                                    adjacencyList[kk] = NULL;
                                 }
 
                                 /* Popolare la matrice di adiacenza */
-                                createGraphFwd(startStation, endStation, numOfStations + 2, lut, adjacencyMatrix);
+                                createGraphFwd(startStation, endStation, numOfStations + 2, lut, adjacencyList);
 
-#ifdef DEBUG
-printMatrix(adjacencyMatrix, numOfStations + 2);
-#endif
-
-                                dijkstra(adjacencyMatrix, indexOf(lut, numOfStations + 2, startStation->distance), indexOf(lut, numOfStations + 2, endStation->distance), lut, numOfStations + 2);
+                                dijkstra(adjacencyList, indexOf(lut, numOfStations + 2, startStation->distance), indexOf(lut, numOfStations + 2, endStation->distance), lut, numOfStations + 2);
 
                                 for(k = 0; k < numOfStations + 2; k++){
-                                    free(adjacencyMatrix[k]);
+                                    destroyGraph(adjacencyList[k]);
                                 }
-                                free(adjacencyMatrix);
+                                free(adjacencyList);
                                 free(lut);
                             }
                             break;
@@ -312,29 +314,26 @@ printMatrix(adjacencyMatrix, numOfStations + 2);
                                 }
                                 lut[k] = ptrTemp->distance;
 
-                                /* Creare la matrice di adiacenza per il grafo */
-                                uint32_t** adjacencyMatrix = (uint32_t**)malloc((numOfStations + 2)*sizeof(uint32_t*));
+                                /* Creare la lista di adiacenza per il grafo */
+                                ptr_graphNode *adjacencyList = malloc((numOfStations + 2)*sizeof(ptr_graphNode));
                                 for(k = 0; k < numOfStations + 2; k++){
-                                    adjacencyMatrix[k] = (uint32_t*)malloc((numOfStations + 2)*sizeof(uint32_t));
-                                    for(int j = 0; j < numOfStations + 2; j++){
-                                        adjacencyMatrix[k][j] = 0;
-                                    }
+                                    adjacencyList[k] = NULL;
                                 }
 
                                 /* Popolare la matrice di adiacenza */
-                                createGraphRev(startStation, endStation, numOfStations + 2, lut, adjacencyMatrix);
+                                createGraphRev(startStation, endStation, numOfStations + 2, lut, adjacencyList);
 /*
 #ifdef DEBUG
 printMatrix(adjacencyMatrix, numOfStations + 2);
 #endif
  */
 
-                                dijkstra(adjacencyMatrix, indexOf(lut, numOfStations + 2, startStation->distance), indexOf(lut, numOfStations + 2, endStation->distance), lut, numOfStations + 2);
+                                dijkstra(adjacencyList, indexOf(lut, numOfStations + 2, startStation->distance), indexOf(lut, numOfStations + 2, endStation->distance), lut, numOfStations + 2);
 
                                 for(k = 0; k < numOfStations + 2; k++){
-                                    free(adjacencyMatrix[k]);
+                                    destroyGraph(adjacencyList[k]);
                                 }
-                                free(adjacencyMatrix);
+                                free(adjacencyList);
                                 free(lut);
                             }
                             break;
@@ -638,9 +637,9 @@ void removeVehicle(ptr_station ptStations, uint32_t distance, uint32_t vehicleTo
  * @param destination è la stazione di arrivo.
  * @param numOfStations è il numero di stazioni tra la stazione di partenza e quella di arrivo.
  * @param lut è il puntatore alla LUT.
- * @param adjacencyMatrix è il grafo, memorizzato come matrice di adiacenza.
+ * @param adjacencyList è il grafo, memorizzato come lista di adiacenza.
  */
-void createGraphFwd(ptr_station departure, ptr_station destination, int numOfStations, uint32_t * lut, uint32_t **adjacencyMatrix){
+void createGraphFwd(ptr_station departure, ptr_station destination, int numOfStations, uint32_t * lut, ptr_graphNode *adjacencyList){
 
     if(departure == destination){
         return;
@@ -650,18 +649,28 @@ void createGraphFwd(ptr_station departure, ptr_station destination, int numOfSta
     int row = indexOf(lut, numOfStations, departure->distance);
     int col;
     while(ptrTemp != destination){
-        col = indexOf(lut, numOfStations, ptrTemp->distance);
-        if(ptrTemp->distance - departure->distance <= departure->vehiclesInStation[departure->maxCapacityIndex]){
-            adjacencyMatrix[row][col] = ptrTemp->distance - departure->distance;
+        if(ptrTemp != departure){
+            col = indexOf(lut, numOfStations, ptrTemp->distance);
+            if(ptrTemp->distance - departure->distance <= departure->vehiclesInStation[departure->maxCapacityIndex]){
+#ifdef DEBUG
+                printf("row = %d\n", row);
+                printf("col = %d\n", col);
+#endif
+                adjacencyList[row] = addGraphNode(adjacencyList[row], col, ptrTemp->distance - departure->distance);
+            }
         }
         ptrTemp = ptrTemp->next;
     }
     col = indexOf(lut, numOfStations, ptrTemp->distance);
     if(ptrTemp->distance - departure->distance <= departure->vehiclesInStation[departure->maxCapacityIndex]){
-        adjacencyMatrix[row][col] = ptrTemp->distance - departure->distance;
+#ifdef DEBUG
+        printf("row = %d\n", row);
+        printf("col = %d\n", col);
+#endif
+        adjacencyList[row] = addGraphNode(adjacencyList[row], col, ptrTemp->distance - departure->distance);
     }
 
-    createGraphFwd(departure->next, destination, numOfStations, lut, adjacencyMatrix);
+    createGraphFwd(departure->next, destination, numOfStations, lut, adjacencyList);
 }
 
 /**
@@ -670,9 +679,9 @@ void createGraphFwd(ptr_station departure, ptr_station destination, int numOfSta
  * @param destination è la stazione di arrivo.
  * @param numOfStations è il numero di stazioni tra la stazione di partenza e quella di arrivo.
  * @param lut è il puntatore alla LUT.
- * @param adjacencyMatrix è il grafo, memorizzato come matrice di adiacenza.
+ * @param adjacencyList è il grafo, memorizzato come lista di adiacenza.
  */
-void createGraphRev(ptr_station departure, ptr_station destination, int numOfStations, uint32_t * lut, uint32_t **adjacencyMatrix){
+void createGraphRev(ptr_station departure, ptr_station destination, int numOfStations, uint32_t * lut, ptr_graphNode *adjacencyList){
 
     if(departure == destination){
         return;
@@ -682,18 +691,20 @@ void createGraphRev(ptr_station departure, ptr_station destination, int numOfSta
     int row = indexOf(lut, numOfStations, departure->distance);
     int col;
     while(ptrTemp != destination){
-        col = indexOf(lut, numOfStations, ptrTemp->distance);
-        if(departure->distance - ptrTemp->distance <= departure->vehiclesInStation[departure->maxCapacityIndex]){
-            adjacencyMatrix[row][col] = ptrTemp->distance - destination->distance;
+        if(ptrTemp != departure){
+            col = indexOf(lut, numOfStations, ptrTemp->distance);
+            if(departure->distance - ptrTemp->distance <= departure->vehiclesInStation[departure->maxCapacityIndex]){
+                adjacencyList[row] = addGraphNode(adjacencyList[row], col, ptrTemp->distance - destination->distance);
+            }
         }
         ptrTemp = ptrTemp->previous;
     }
     col = indexOf(lut, numOfStations, ptrTemp->distance);
     if(departure->distance - ptrTemp->distance <= departure->vehiclesInStation[departure->maxCapacityIndex]){
-        adjacencyMatrix[row][col] = 1;
+        adjacencyList[row] = addGraphNode(adjacencyList[row], col, 1);
     }
 
-    createGraphRev(departure->previous, destination, numOfStations, lut, adjacencyMatrix);
+    createGraphRev(departure->previous, destination, numOfStations, lut, adjacencyList);
 }
 
 /*
@@ -753,7 +764,7 @@ void printPath(int *parent, int j, uint32_t *lut) {
  * @param lut è la LUT che trasforma le distanze in valori da 0 a numOfStations.
  * @param numOfStations è il numero di stazioni tra la partenza e la destinazione.
  */
-void dijkstra(uint32_t **graph, int src, int dest, uint32_t *lut, int numOfStations) {
+void dijkstra(ptr_graphNode *graph, int src, int dest, uint32_t *lut, int numOfStations) {
     uint32_t *dist = malloc(numOfStations*sizeof(uint32_t));
     bool *visited = malloc(numOfStations*sizeof(bool));
     int *parent = malloc(numOfStations*sizeof(int));
@@ -770,13 +781,19 @@ void dijkstra(uint32_t **graph, int src, int dest, uint32_t *lut, int numOfStati
 
     for(int count = 0; count < numOfStations - 1; count++){
         int u = minDistance(dist, visited, numOfStations);
+        bool stop = FALSE;
         visited[u] = TRUE;
 
-        for(int v = 0; v < numOfStations; v++){
+        for(int v = count + 1; v < numOfStations && !stop; v++){
             if(u >= 0){
-                if(!visited[v] && graph[u][v] && dist[u] + graph[u][v] < dist[v]){
-                    parent[v] = u;
-                    dist[v] = dist[u] + graph[u][v];
+                uint32_t currDistance = getDistanceOfNode(graph, u, v);
+                if(currDistance != 0){
+                    if(!visited[v] && currDistance && dist[u] + currDistance < dist[v]){
+                        parent[v] = u;
+                        dist[v] = dist[u] + currDistance;
+                    }
+                } else {
+                    stop = TRUE;
                 }
             }
         }
@@ -1030,4 +1047,82 @@ int binarySearchRev(uint32_t *array, int startIndex, int endIndex, uint32_t dist
         return binarySearchRev(array, pivotIndex + 1, endIndex, distanceToFind);
     }
     return binarySearchRev(array, startIndex, pivotIndex - 1, distanceToFind);
+}
+
+/**
+ * Funzione che aggiunge un nodo nella cella della lista di adiacenza puntata da startNode.
+ * @param startNode è il puntatore all'inizio della lista di nodi della cella i-esima della lista di adiacenza.
+ * @param nodeReached è il nodo raggiunto dal nodo corrente.
+ * @param distance è la distanza del nodo raggiunto.
+ * @return il puntatore all'inizio della lista aggiornata.
+ */
+ptr_graphNode addGraphNode(ptr_graphNode startNode, int nodeReached, uint32_t distance) {
+    ptr_graphNode ptrTempToAdd;
+    ptr_graphNode ptrTemp;
+
+    ptrTempToAdd = malloc(sizeof(t_graphNode));
+    if (!ptrTempToAdd) {
+        printf("Errore allocazione memoria durante la creazione del grafo.\n");
+    } else {
+        ptrTempToAdd->nodeReached = nodeReached;
+        ptrTempToAdd->distance = distance;
+        ptrTempToAdd->nextNode = NULL;
+
+        if (startNode == NULL) {
+            startNode = ptrTempToAdd;
+        } else {
+            ptrTemp = startNode;
+            while (ptrTemp->nextNode != NULL) {
+                ptrTemp = ptrTemp->nextNode;
+            }
+
+            ptrTemp->nextNode = ptrTempToAdd;
+        }
+    }
+
+    return startNode;
+}
+
+/**
+ * Funzione che distrugge tutti i nodi presenti dalla lista puntata da ptrGraphNode.
+ * @param ptrGraphNode è il puntatore all'inizio della lista.
+ * @return il puntatore all'inizio della lista aggiornata.
+ */
+ptr_graphNode destroyGraph(ptr_graphNode ptrGraphNode){
+    ptr_graphNode ptTemp;
+
+    while(ptrGraphNode != NULL){
+        ptTemp = ptrGraphNode;
+        ptrGraphNode = ptrGraphNode->nextNode;
+        free(ptTemp);
+    }
+    ptrGraphNode = NULL;
+
+    return(ptrGraphNode);
+}
+
+/**
+ * Funzione che trova la distanza del noto j-esimo raggiungibile dalla cella i-esima della lista di adiacenza.
+ * @param graph è il puntatore alla lista di adiacenza rappresentante l'intero grafo.
+ * @param row è la riga della lista di adiacenza.
+ * @param col è la colonna, ovvero il nodo raggiungibile dal nodo graph[row].
+ * @return la distanza del nodo raggiungibile.
+ */
+uint32_t getDistanceOfNode(ptr_graphNode *graph, int row, int col){
+    ptr_graphNode ptrTemp = graph[row];
+    bool found = FALSE;
+
+    while(ptrTemp != NULL && !found){
+        if(ptrTemp->nodeReached == col){
+            found = TRUE;
+        } else {
+            ptrTemp = ptrTemp->nextNode;
+        }
+    }
+
+    if(ptrTemp == NULL){
+        return 0;
+    } else {
+        return ptrTemp->distance;
+    }
 }
