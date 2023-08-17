@@ -27,7 +27,7 @@
 typedef struct station {
     uint32_t distance;
     uint16_t numberOfCars;
-    uint32_t vehiclesInStation[NUM_OF_CARS];
+    uint32_t *vehiclesInStation;
     int maxCapacityIndex;
     struct station *previous;
     struct station *next;
@@ -97,7 +97,7 @@ int main() {
                     int i = 0;
                     uint32_t tempDistance = 0;
                     uint16_t tempNumOfCars = 0;
-                    uint32_t tempVehicles[512] = { 0 };
+                    uint32_t *tempVehicles = NULL;
                     char* p = inputBuffer + 18;
                     while(p < inputBuffer+BUFF_LEN ) {
                         char *end;
@@ -109,6 +109,7 @@ int main() {
                             tempDistance = tempValue;
                         } else if(i == 1) {
                             tempNumOfCars = tempValue;
+                            tempVehicles = malloc(tempNumOfCars*sizeof(uint32_t));
                         } else {
                             tempVehicles[i - 2] = tempValue;
                         }
@@ -118,6 +119,10 @@ int main() {
                     }
 
                     autostrada = addStation(autostrada, tempDistance, tempNumOfCars, tempVehicles);
+#ifdef DEBUG
+                    printStations(autostrada);
+#endif
+                    free(tempVehicles);
 
                 } else if(inputBuffer[9] == 'a'){
                     /* Comando: aggiungi-auto */
@@ -143,6 +148,9 @@ int main() {
                     }
 
                     addVehicle(autostrada, tempDistance, tempVehicle);
+#ifdef DEBUG
+                    printStations(autostrada);
+#endif
                 }
             } else if(inputBuffer[0] == 'd'){
                 /* Comando: demolisci-stazione */
@@ -161,6 +169,9 @@ int main() {
                 }
 
                 autostrada = removeStation(autostrada, tempDistance);
+#ifdef DEBUG
+                printStations(autostrada);
+#endif
 
             } else if(inputBuffer[0] == 'r'){
                 /* Comando: rottama-auto */
@@ -186,6 +197,9 @@ int main() {
                 }
 
                 removeVehicle(autostrada, tempDistance, tempVehicle);
+#ifdef DEBUG
+                printStations(autostrada);
+#endif
 
             } else if(inputBuffer[0] == 'p'){
                 /* Comando: pianifica-percorso */
@@ -379,7 +393,7 @@ void printStations(ptr_station ptStations){
     ptTemp = ptStations;
     while(ptTemp != NULL){
         printf("Stazione al km: %u\n", ptTemp->distance);
-        for(int i = 0; i < NUM_OF_CARS; i++){
+        for(int i = 0; i < ptTemp->numberOfCars; i++){
             printf("\t%u\n", ptTemp->vehiclesInStation[i]);
         }
         ptTemp = ptTemp->next;
@@ -420,7 +434,8 @@ ptr_station addStation(ptr_station ptStations, uint32_t distance, uint16_t numOf
     } else {
         ptTempToAdd->distance = distance;
         ptTempToAdd->numberOfCars = numOfCars;
-        for(i = 0; i < NUM_OF_CARS; i++){
+        ptTempToAdd->vehiclesInStation = malloc(numOfCars*sizeof(uint32_t));
+        for(i = 0; i < numOfCars; i++){
             ptTempToAdd->vehiclesInStation[i] = vehicles[i];
         }
         if(numOfCars > 0){
@@ -511,19 +526,23 @@ ptr_station removeStation(ptr_station ptStations, uint32_t distance){
         if(ptTempPrevious == NULL && ptTemp->next == NULL){
             /* Unico elemento della lista */
             ptStations = NULL;
+            free(ptTemp->vehiclesInStation);
             free(ptTemp);
         } else if(ptTempPrevious == NULL){
             /* Primo elemento, ma ce ne sono altri dopo */
             ptTemp->next->previous = ptTempPrevious;
             ptStations = ptTemp->next;
+            free(ptTemp->vehiclesInStation);
             free(ptTemp);
         } else if(ptTemp->next == NULL){
             /* Ultimo elemento */
             ptTempPrevious->next = NULL;
+            free(ptTemp->vehiclesInStation);
             free(ptTemp);
         } else {
             ptTempPrevious->next = ptTemp->next;
             ptTemp->next->previous = ptTempPrevious;
+            free(ptTemp->vehiclesInStation);
             free(ptTemp);
         }
     }
@@ -557,17 +576,20 @@ void addVehicle(ptr_station ptStations, uint32_t distance, uint32_t vehicle){
         found = FALSE;
     } else {
 
-        if(ptTemp->numberOfCars >= 512){
+        if(ptTemp->numberOfCars >= NUM_OF_CARS){
             isSpaceAvailable = FALSE;
         } else {
-            ptTemp->vehiclesInStation[ptTemp->numberOfCars] = vehicle;
-            /* Se il veicolo che aggiungo ha capacità maggiore del veicolo con capacità maggiore nell'array,
-             * diventa il nuovo veicolo con capacità maggiore.
-             */
-            if(vehicle > ptTemp->vehiclesInStation[ptTemp->maxCapacityIndex]){
-                ptTemp->maxCapacityIndex = ptTemp->numberOfCars;
+            ptTemp->vehiclesInStation = realloc(ptTemp->vehiclesInStation, (ptTemp->numberOfCars + 1)*sizeof(uint32_t));
+            if(ptTemp->vehiclesInStation != NULL){
+                ptTemp->vehiclesInStation[ptTemp->numberOfCars] = vehicle;
+                /* Se il veicolo che aggiungo ha capacità maggiore del veicolo con capacità maggiore nell'array,
+                 * diventa il nuovo veicolo con capacità maggiore.
+                 */
+                if(vehicle > ptTemp->vehiclesInStation[ptTemp->maxCapacityIndex]){
+                    ptTemp->maxCapacityIndex = ptTemp->numberOfCars;
+                }
+                ptTemp->numberOfCars += 1;
             }
-            ptTemp->numberOfCars += 1;
         }
     }
 
@@ -605,10 +627,15 @@ void removeVehicle(ptr_station ptStations, uint32_t distance, uint32_t vehicleTo
         } else {
             i = 0;
             removedVehicle = FALSE;
-            while(!removedVehicle && i < NUM_OF_CARS){
+            while(!removedVehicle && i < ptTemp->numberOfCars){
                 if(ptTemp->vehiclesInStation[i] == vehicleToRemove){
                     ptTemp->vehiclesInStation[i] = 0;
                     sortVehicles(ptTemp->vehiclesInStation, 0, ptTemp->numberOfCars - 1);
+                    if(ptTemp->numberOfCars == 1){
+                        free(ptTemp->vehiclesInStation);
+                    } else {
+                        ptTemp->vehiclesInStation = realloc(ptTemp->vehiclesInStation, (ptTemp->numberOfCars - 1)*sizeof(uint32_t));
+                    }
                     ptTemp->maxCapacityIndex = 0;
                     ptTemp->numberOfCars -= 1;
                     removedVehicle = TRUE;
@@ -652,10 +679,6 @@ void createGraphFwd(ptr_station departure, ptr_station destination, int numOfSta
         if(ptrTemp != departure){
             col = indexOf(lut, numOfStations, ptrTemp->distance);
             if(ptrTemp->distance - departure->distance <= departure->vehiclesInStation[departure->maxCapacityIndex]){
-#ifdef DEBUG
-                printf("row = %d\n", row);
-                printf("col = %d\n", col);
-#endif
                 adjacencyList[row] = addGraphNode(adjacencyList[row], col, ptrTemp->distance - departure->distance);
             }
         }
@@ -663,10 +686,6 @@ void createGraphFwd(ptr_station departure, ptr_station destination, int numOfSta
     }
     col = indexOf(lut, numOfStations, ptrTemp->distance);
     if(ptrTemp->distance - departure->distance <= departure->vehiclesInStation[departure->maxCapacityIndex]){
-#ifdef DEBUG
-        printf("row = %d\n", row);
-        printf("col = %d\n", col);
-#endif
         adjacencyList[row] = addGraphNode(adjacencyList[row], col, ptrTemp->distance - departure->distance);
     }
 
