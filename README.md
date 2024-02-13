@@ -28,7 +28,7 @@ Il mio progetto prendendo i dati dal verificatore ha i seguenti utilizzi di memo
 - Memoria: ~6,1 MiB
 - Tempo: ~6,3 s
 
-Questi dati possono variare a seconda della potenza di calcolo della macchina.
+Questi risultati possono variare a seconda della potenza di calcolo della macchina.
 
 La specifica completa del progetto è disponibile [qui](https://github.com/ale-polimi/progetto-API-2023/blob/master/documents/Specifica_2022-2023.pdf).
 
