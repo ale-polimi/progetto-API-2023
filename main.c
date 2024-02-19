@@ -355,6 +355,7 @@ bool safe_fgets(char *s){
  * Aggiunta in ordine crescente di una stazione all'autostrada. Se è già presente una stazione di servizio alla distanza specificata, non la si aggiunge.
  * @param ptStations è il puntatore all'inizio della lista.
  * @param distance è la distanza della nuova stazione dall'inizio dell'autostrada.
+ * @param numOfCars è il numero di veicoli all'interno della stazione.
  * @param vehicles è il puntatore all'array contenente i veicoli della nuova stazione.
  * @return il puntatore all'inizio della lista aggiornata.
  */
@@ -619,6 +620,14 @@ void removeVehicle(ptr_station ptStations, uint32_t distance, uint32_t vehicleTo
  * =========================================
  */
 
+/**
+ * Ricerca del percorso ottimo tra due stazioni di servizio dell'autostrada.
+ * @param autostrada è il puntatore all'inizio dell'autostrada.
+ * @param start è la stazione di partenza.
+ * @param end è la stazione di arrivo.
+ * @param numOfStations è il numero di stazioni tra la partenza e l'arrivo.
+ * @param direction è la direzione di percorrenza dell'autostrada. Può essere {@code FWD} oppure {@code REV}.
+ */
 void dijkstra(ptr_station autostrada, ptr_station start, ptr_station end, int numOfStations, int direction) {
     ptr_station *stations = malloc(numOfStations * sizeof(ptr_station));
     bool *visited = malloc(numOfStations*sizeof(bool));
