@@ -14,14 +14,14 @@ Realizzare un programma in C per la ricerca del percorso ottimo tra stazioni di 
 
 Il programma non solo deve produrre un output corretto, ma deve rispettare dei vincoli di memoria e tempo CPU come in tabella:
 
-| Valutazione | Memoria | Tempo | Esito              |
-|-------------|--------:|------:|--------------------|
+| Valutazione | Memoria | Tempo |       Esito        |
+|-------------|--------:|------:|:------------------:|
 | 18          | 128 MiB | 19 s  | :white_check_mark: |
 | 21          | 118 MiB | 15 s  | :white_check_mark: |
 | 24          | 108 MiB | 10 s  | :white_check_mark: |
-| 27          |  98 MiB |  6 s  | :x:                |
-| 30          |  88 MiB |  4 s  | :x:                |
-| 30L         |  78 MiB |  1 s  | :x:                |
+| 27          |  98 MiB |  6 s  |        :x:         |
+| 30          |  88 MiB |  4 s  |        :x:         |
+| 30L         |  78 MiB |  1 s  |        :x:         |
 
 Il mio progetto prendendo i dati dal verificatore ha i seguenti utilizzi di memoria e tempo:
 
