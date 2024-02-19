@@ -3,7 +3,10 @@
 #include <stdint.h>
 #include <sys/time.h>
 
+/* Remove comment from this define for extra prints used for debug */
 //#define DEBUG 1
+
+/* Remove comment from this define for time measurement */
 //#define TIME_DEBUG 1
 
 #define FALSE 0
@@ -82,11 +85,6 @@ int searchInCache(uint32_t distance){
  * END OF CACHE MANAGEMENT
  */
 
-/* REMOVE LATER */
-// void printGraph(ptr_graphNode *, int, uint32_t *);
-void printStations(ptr_station);
-/* END OF REMOVE LATER */
-
 // Specification commands' functions
 bool safe_fgets(char*);
 ptr_station addStation(ptr_station, uint32_t, uint16_t, uint32_t*);
@@ -103,12 +101,9 @@ int partition(uint32_t*, int, int);
 void swap(uint32_t*, uint32_t*);
 
 // Utility functions
-void resetArray(bool *, int);
 ptr_station findStation(ptr_station, uint32_t);
 int findNumOfStations(ptr_station, uint32_t, uint32_t, direction);
 ptr_station destroyStations(ptr_station);
-int binarySearchFwd(uint32_t *, int, int, uint32_t);
-int binarySearchRev(uint32_t *, int, int, uint32_t);
 
 int main() {
     ptr_station autostrada;
@@ -119,19 +114,19 @@ int main() {
     resetCache();
 
 #ifdef TIME_DEBUG
-    struct timeval stop, start;
-    gettimeofday(&start, NULL);
+gettimeofday(&start, NULL);
+struct timeval stop, start;
 #endif
 
     while(TRUE){
-        /*
-        printf("Cache: [");
-        for(int cache = 0; cache < CACHE_LENGTH - 1; cache++){
-            printf("%u, ", ((cachedStation[cache] != NULL) ? cachedStation[cache]->distance : 0));
-        }
-        printf("%u]\n", ((cachedStation[CACHE_LENGTH - 1] != NULL) ? cachedStation[CACHE_LENGTH - 1]->distance : 0));
-        printf("lastAdded = %d\n", lastAdded);
-         */
+#ifdef DEBUG
+printf("Cache: [");
+for(int cache = 0; cache < CACHE_LENGTH - 1; cache++){
+    printf("%u, ", ((cachedStation[cache] != NULL) ? cachedStation[cache]->distance : 0));
+}
+printf("%u]\n", ((cachedStation[CACHE_LENGTH - 1] != NULL) ? cachedStation[CACHE_LENGTH - 1]->distance : 0));
+printf("lastAdded = %d\n", lastAdded);
+#endif
 
         if(safe_fgets(inputBuffer)){
             if(inputBuffer[0] == 'a'){
@@ -289,7 +284,7 @@ int main() {
                             } else {
 
 #ifdef DEBUG
-                                printf("NumOfStations: %d\n", numOfStations + 2);
+printf("NumOfStations: %d\n", numOfStations + 2);
 #endif
 
                                 ptr_station startStation = findStation(autostrada, from);
@@ -315,7 +310,7 @@ int main() {
                             } else {
 
 #ifdef DEBUG
-                                printf("NumOfStations: %d\n", numOfStations + 2);
+printf("NumOfStations: %d\n", numOfStations + 2);
 #endif
                                 ptr_station endStation = findStation(autostrada, to);
                                 ptr_station startStation = findStation(endStation, from);
@@ -337,33 +332,12 @@ int main() {
         }
     }
 #ifdef TIME_DEBUG
-    gettimeofday(&stop, NULL);
-    printf("Execution time: %lu us\n", (stop.tv_sec - start.tv_sec) * 1000000 + stop.tv_usec - start.tv_usec);
-    printf("Cache size: %d\n", CACHE_LENGTH);
+gettimeofday(&stop, NULL);
+printf("Execution time: %lu us\n", (stop.tv_sec - start.tv_sec) * 1000000 + stop.tv_usec - start.tv_usec);
+printf("Cache size: %d\n", CACHE_LENGTH);
 #endif
     return 0;
 }
-
-/* REMOVE LATER */
-
-/**
- * Metodo utilizzato per stampare in sequenza le stazioni e i contenuti. Usato per debug.
- * @param ptStations è il puntatore all'inizio dell'autostrada.
- */
-void printStations(ptr_station ptStations){
-    ptr_station ptTemp;
-
-    ptTemp = ptStations;
-    while(ptTemp != NULL){
-        printf("Stazione al km: %u\n", ptTemp->distance);
-        for(int i = 0; i < ptTemp->numberOfCars; i++){
-            printf("\t%u\n", ptTemp->vehiclesInStation[i]);
-        }
-        ptTemp = ptTemp->next;
-    }
-}
-
-/* END OF REMOVE LATER */
 
 /**
  * Funzione per ricevere in modo sicuro l'input.
@@ -685,13 +659,13 @@ void dijkstra(ptr_station autostrada, ptr_station start, ptr_station end, int nu
             visited[0] = TRUE;
             while (head != tail) {
 
-                /*
-                printf("QueueFWD= [");
-                for(int index = 0; index < numOfStations - 1; index++){
-                    printf("%d, ", queue[index]);
-                }
-                printf("%d]\n", queue[numOfStations - 1]);
-                 */
+#ifdef DEBUG
+printf("QueueFWD= [");
+for(int index = 0; index < numOfStations - 1; index++){
+    printf("%d, ", queue[index]);
+}
+printf("%d]\n", queue[numOfStations - 1]);
+#endif
 
                 int u = queue[head];
                 head++;
@@ -766,13 +740,13 @@ void dijkstra(ptr_station autostrada, ptr_station start, ptr_station end, int nu
             visited[0] = 1;
             while (head != tail) {
 
-                /*
-                printf("QueueREV= [");
-                for(int index = 0; index < numOfStations - 1; index++){
-                    printf("%d, ", queue[index]);
-                }
-                printf("%d]\n", queue[numOfStations - 1]);
-                 */
+#ifdef DEBUG
+printf("QueueREV= [");
+for(int index = 0; index < numOfStations - 1; index++){
+    printf("%d, ", queue[index]);
+}
+printf("%d]\n", queue[numOfStations - 1]);
+#endif
 
                 int u = queue[head];
                 head++;
@@ -876,18 +850,6 @@ void swap(uint32_t* a, uint32_t* b){
 }
 
 /**
- * Funzione che azzera un array.
- * @param ptrArray è il puntatore all'array.
- * @param length è la lunghezza dell'array;
- */
-void resetArray(bool *ptrArray, int length) {
-    int i;
-    for(i = 0; i < length; i++){
-        ptrArray[i] = 0;
-    }
-}
-
-/**
  * Funzione che ritorna la stazione alla distanza richiesta. La stazione deve esistere.
  * @param ptrStations è il puntatore all'inizio dell'autostrada.
  * @param distance è la distanza della stazione.
@@ -977,72 +939,4 @@ ptr_station destroyStations(ptr_station ptrStations){
     ptrStations = NULL;
 
     return(ptrStations);
-}
-
-/**
- * Funzione che trova l'indice della stazione all'interno della LUT (Look-Up Table).
- * @param lut è il puntatore alla LUT.
- * @param length è la lunghezza della LUT.
- * @param distance è la distanza (ID della stazione) a cui si trova la stazione da cercare.
- * @return l'indice della LUT contenente tale stazione.
- */
-int indexOf(uint32_t *lut, int length, uint32_t distance) {
-    /* Binary search for better performance */
-    if(lut[0] < lut[length - 1]){
-        /* Array is in ascending order */
-        return binarySearchFwd(lut, 0, length - 1, distance);
-    } else {
-        /* Array is in descending order */
-        return binarySearchRev(lut, 0, length - 1, distance);
-    }
-}
-
-/**
- * Ricerca binaria dell'elemento.
- * @param array è l'array dove effettuare la ricerca.
- * @param startIndex è l'indice di partenza della ricerca.
- * @param endIndex è l'indice di fine della ricerca.
- * @param distanceToFind è l'elemento da trovare.
- * @return @code i dove i è l'indice dell'elemento, -1 se l'elemento non è stato trovato.
- */
-int binarySearchFwd(uint32_t *array, int startIndex, int endIndex, uint32_t distanceToFind){
-    int pivotIndex;
-    if(startIndex > endIndex){
-        return -1;
-    }
-
-    pivotIndex = (startIndex + endIndex)/2;
-
-    if(distanceToFind == array[pivotIndex]){
-        return pivotIndex;
-    }
-    if(distanceToFind < array[pivotIndex]){
-        return binarySearchFwd(array, startIndex, pivotIndex - 1, distanceToFind);
-    }
-    return binarySearchFwd(array, pivotIndex + 1, endIndex, distanceToFind);
-}
-
-/**
- * Ricerca binaria dell'elemento.
- * @param array è l'array dove effettuare la ricerca.
- * @param startIndex è l'indice di partenza della ricerca.
- * @param endIndex è l'indice di fine della ricerca.
- * @param distanceToFind è l'elemento da trovare.
- * @return @code i dove i è l'indice dell'elemento, -1 se l'elemento non è stato trovato.
- */
-int binarySearchRev(uint32_t *array, int startIndex, int endIndex, uint32_t distanceToFind){
-    int pivotIndex;
-    if(startIndex > endIndex){
-        return -1;
-    }
-
-    pivotIndex = (startIndex + endIndex)/2;
-
-    if(distanceToFind == array[pivotIndex]){
-        return pivotIndex;
-    }
-    if(distanceToFind < array[pivotIndex]){
-        return binarySearchRev(array, pivotIndex + 1, endIndex, distanceToFind);
-    }
-    return binarySearchRev(array, startIndex, pivotIndex - 1, distanceToFind);
 }
