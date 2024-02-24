@@ -23,6 +23,19 @@ Il programma non solo deve produrre un output corretto, ma deve rispettare dei v
 | 30          |  88 MiB |  4 s  |        :x:         |
 | 30L         |  78 MiB |  1 s  |        :x:         |
 
+Al fine di rispettare i limiti di tempo è stato necessario creare una cache contenente i puntatori alle ultime stazioni modificate o accedute. Il grafico seguente rappresenta il tempo di esecuzione del programma con input il file `open_111.txt` al variare della grandezza della cache:
+
+```mermaid
+xychart-beta;
+	x-axis "Dimensione cache" [1, 2, 3, 4, 5]
+	y-axis "Tempo di esecuzione [s]" 40 --> 45
+	bar [44, 44, 42, 41, 44]
+	line [44, 44, 42, 41, 44]
+```
+
+> [!NOTE]
+> I tempi di esecuzione sono molto alti siccome il programma è stato eseguito in una macchina virtuale per questo test.
+
 Il mio progetto prendendo i dati dal verificatore ha i seguenti utilizzi di memoria e tempo:
 
 - Memoria: ~6,1 MiB
