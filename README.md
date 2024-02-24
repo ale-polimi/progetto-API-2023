@@ -25,13 +25,7 @@ Il programma non solo deve produrre un output corretto, ma deve rispettare dei v
 
 Al fine di rispettare i limiti di tempo è stato necessario creare una cache contenente i puntatori alle ultime stazioni modificate o accedute. Il grafico seguente rappresenta il tempo di esecuzione del programma con input il file `open_111.txt` al variare della grandezza della cache:
 
-```mermaid
-xychart-beta;
-	x-axis "Dimensione cache" [1, 2, 3, 4, 5]
-	y-axis "Tempo di esecuzione (s)" 40 --> 45
-	bar [44, 44, 42, 41, 44]
-	line [44, 44, 42, 41, 44]
-```
+![alt text](https://github.com/ale-polimi/progetto-API-2023/blob/master/mermaid-diagram-2024-02-24-223609.png)
 
 > [!NOTE]
 > I tempi di esecuzione sono molto alti siccome il programma è stato eseguito in una macchina virtuale per questo test.
