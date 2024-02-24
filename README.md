@@ -28,7 +28,7 @@ Al fine di rispettare i limiti di tempo è stato necessario creare una cache con
 ```mermaid
 xychart-beta;
 	x-axis "Dimensione cache" [1, 2, 3, 4, 5]
-	y-axis "Tempo di esecuzione [s]" 40 --> 45
+	y-axis "Tempo di esecuzione (s)" 40 --> 45
 	bar [44, 44, 42, 41, 44]
 	line [44, 44, 42, 41, 44]
 ```
