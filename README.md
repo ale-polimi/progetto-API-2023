@@ -2,6 +2,8 @@
 
 [![License: GPL v2](https://img.shields.io/badge/License-GPL_v2-blue.svg)](https://github.com/ale-polimi/progetto-API-2023/blob/master/LICENSE)
 
+[![CMake on a single platform](https://github.com/ale-polimi/progetto-API-2023/actions/workflows/cmake-single-platform.yml/badge.svg)](https://github.com/ale-polimi/progetto-API-2023/actions/workflows/cmake-single-platform.yml)
+
 Prova finale di algoritmi e principi dell'informatica per l'anno accademico 2022-2023.
 
 Docente: Martineghi Davide
