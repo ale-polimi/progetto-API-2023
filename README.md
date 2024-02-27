@@ -25,13 +25,6 @@ Il programma non solo deve produrre un output corretto, ma deve rispettare dei v
 | 30          |  88 MiB |  4 s  |        :x:         |
 | 30L         |  78 MiB |  1 s  |        :x:         |
 
-Al fine di rispettare i limiti di tempo è stato necessario creare una cache contenente i puntatori alle ultime stazioni modificate o accedute. Il grafico seguente rappresenta il tempo di esecuzione del programma con input il file `open_111.txt` al variare della grandezza della cache:
-
-![alt text](https://github.com/ale-polimi/progetto-API-2023/blob/master/mermaid-diagram-2024-02-24-223609.png)
-
-> [!NOTE]
-> I tempi di esecuzione sono molto alti siccome il programma è stato eseguito in una macchina virtuale per questo test.
-
 Il mio progetto prendendo i dati dal verificatore ha i seguenti utilizzi di memoria e tempo:
 
 - Memoria: ~6,1 MiB
@@ -42,6 +35,17 @@ Questi risultati possono variare a seconda della potenza di calcolo della macchi
 La specifica completa del progetto è disponibile [qui](https://github.com/ale-polimi/progetto-API-2023/blob/master/documents/Specifica_2022-2023.pdf).
 
 I test sono disponibili [qui](https://github.com/ale-polimi/progetto-API-2023/blob/master/documents/open_tests).
+
+## Scelte progettuali
+
+La struttura dati che rappresenta l'autostrada è una [lista doppiamente concatenata](https://it.wikipedia.org/wiki/Lista_concatenata#Liste_doppiamente_concatenate); questa soluzione è stata scelta per semplicità implementativa e per il minor uso di memoria rispetto ad altre strutture dati.
+
+Al fine di rispettare i limiti di tempo è stato necessario creare una cache contenente i puntatori alle ultime stazioni modificate o accedute. Il grafico seguente rappresenta il tempo di esecuzione del programma con input il file `open_111.txt` al variare della grandezza della cache:
+
+![alt text](https://github.com/ale-polimi/progetto-API-2023/blob/master/mermaid-diagram-2024-02-24-223609.png)
+
+> [!NOTE]
+> I tempi di esecuzione sono molto alti siccome il programma è stato eseguito in una macchina virtuale per questo test.
 
 ## Strumenti utilizzati
 
