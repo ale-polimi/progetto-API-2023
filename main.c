@@ -114,8 +114,8 @@ int main() {
     resetCache();
 
 #ifdef TIME_DEBUG
-gettimeofday(&start, NULL);
 struct timeval stop, start;
+gettimeofday(&start, NULL);
 #endif
 
     while(TRUE){
